@@ -143,6 +143,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
   const [homeCopiedMsg, setHomeCopiedMsg] = useState<string | null>(null);
 
   const isAdmin = role === 'admin';
+  const isVisitor = role === 'visitor';
   const activeLogoSrc = data.logoUrl || DEFAULT_LOGO_URL;
 
   const setSection = (target: UserSection) => {
@@ -350,6 +351,22 @@ export const UserPortal: React.FC<UserPortalProps> = ({
       (p) => !hiddenIds.has(p.id) && !hiddenTitles.has(p.title.trim())
     );
   }, [projectsList]);
+
+  const visitorVisibleProjects = useMemo(() => {
+    return homeProjectsList.filter(
+      (p) => p.status === 'চলমান' || p.status === 'সম্পন্ন'
+    );
+  }, [homeProjectsList]);
+
+  const ongoingProjectsCount = useMemo(
+    () => homeProjectsList.filter((p) => p.status === 'চলমান').length,
+    [homeProjectsList]
+  );
+
+  const completedProjectsCount = useMemo(
+    () => homeProjectsList.filter((p) => p.status === 'সম্পন্ন').length,
+    [homeProjectsList]
+  );
 
   const projectFinanceStats = useMemo(() => {
     let totalProjectIncome = 0;
@@ -655,10 +672,10 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                     <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center lg:justify-start gap-3">
                       <button
                         type="button"
-                        onClick={() => setSection('finance')}
+                        onClick={() => setSection(isVisitor ? 'projects' : 'finance')}
                         className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 sm:py-2.5 text-[15px] sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-500 shadow-xs whitespace-nowrap"
                       >
-                        আর্থিক স্বচ্ছতা দেখুন
+                        {isVisitor ? 'প্রকল্পসমূহ দেখুন' : 'আর্থিক স্বচ্ছতা দেখুন'}
                         <ArrowRight className="h-4 w-4" />
                       </button>
                       {onSubmitApplication && (
@@ -683,268 +700,430 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
                   {/* Hero Quick Overview & Navigation Panel */}
                   <div className="lg:col-span-5">
-                    <div className="rounded-xl border border-white/15 bg-slate-950/65 p-5 backdrop-blur-md text-white">
-                      <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-3">
-                        <span className="text-sm sm:text-xs font-semibold text-emerald-200">
-                          তাৎক্ষণিক সংগঠন চিত্র
-                        </span>
-                        <span className="font-mono-num text-xs text-slate-300">
-                          {stats.currentMonthName} {stats.currentYear}
-                        </span>
-                      </div>
+                    {isVisitor ? (
+                      <div className="rounded-xl border border-white/15 bg-slate-950/65 p-5 backdrop-blur-md text-white">
+                        <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-3">
+                          <span className="text-sm sm:text-xs font-semibold text-emerald-200">
+                            সংগঠন ও কার্যক্রম চিত্র
+                          </span>
+                          <span className="font-mono-num text-xs text-slate-300">
+                            {stats.currentMonthName} {stats.currentYear}
+                          </span>
+                        </div>
 
-                      <div className="mt-4">
-                        <p className="text-sm sm:text-xs text-slate-300">বর্তমান মোট তহবিল (নেট স্থিতি)</p>
-                        <p className="mt-1 font-mono-num text-2xl sm:text-3xl font-bold text-white">
-                          ৳ {stats.netBalance.toLocaleString('en-US')}
-                        </p>
-                      </div>
+                        <div className="mt-4">
+                          <p className="text-sm sm:text-xs text-slate-300">নিবন্ধিত সদস্য ও কার্যক্রম</p>
+                          <p className="mt-1 font-mono-num text-2xl sm:text-3xl font-bold text-white">
+                            {stats.totalMembers} জন সদস্য
+                          </p>
+                        </div>
 
-                      <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-white/15 pt-4 text-sm sm:text-xs">
-                        <div className="flex items-center justify-between sm:block">
-                          <dt className="text-slate-300">মোট আয়</dt>
-                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-emerald-300">
-                            ৳ {stats.totalIncome.toLocaleString('en-US')}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between sm:block">
-                          <dt className="text-slate-300">মোট ব্যয়</dt>
-                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-rose-300">
-                            ৳ {stats.totalExpense.toLocaleString('en-US')}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between sm:block">
-                          <dt className="text-slate-300">নিবন্ধিত সদস্য</dt>
-                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
-                            {stats.totalMembers} জন
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between sm:block">
-                          <dt className="text-slate-300">উপদেষ্টা মণ্ডলী</dt>
-                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
-                            {stats.totalAdvisors} জন
-                          </dd>
-                        </div>
-                      </dl>
+                        <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4 text-sm sm:text-xs">
+                          <div>
+                            <dt className="text-slate-300">সক্রিয় সদস্য</dt>
+                            <dd className="mt-0.5 font-mono-num text-base sm:text-sm font-bold text-emerald-300">
+                              {stats.activeMembers} জন
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-slate-300">উপদেষ্টা মণ্ডলী</dt>
+                            <dd className="mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
+                              {stats.totalAdvisors} জন
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-slate-300">চলমান প্রকল্প</dt>
+                            <dd className="mt-0.5 font-mono-num text-base sm:text-sm font-bold text-blue-300">
+                              {ongoingProjectsCount} টি
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-slate-300">সম্পন্ন প্রকল্প</dt>
+                            <dd className="mt-0.5 font-mono-num text-base sm:text-sm font-bold text-emerald-300">
+                              {completedProjectsCount} টি
+                            </dd>
+                          </div>
+                        </dl>
 
-                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-t border-white/15 pt-3.5 text-sm sm:text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setSection('projects')}
-                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
-                        >
-                          প্রকল্পসমূহ →
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSection('members')}
-                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
-                        >
-                          সদস্য ডিরেক্টরি →
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSection('eyanot')}
-                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
-                        >
-                          এয়ানত শীট →
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSection('expenses')}
-                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
-                        >
-                          মাসিক ব্যয় →
-                        </button>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-t border-white/15 pt-3.5 text-sm sm:text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setSection('projects')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            প্রকল্পসমূহ →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('members')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            সদস্য ডিরেক্টরি →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('notices')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            নোটিশ বোর্ড →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('contact')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            যোগাযোগ ও অনুদান →
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="rounded-xl border border-white/15 bg-slate-950/65 p-5 backdrop-blur-md text-white">
+                        <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-3">
+                          <span className="text-sm sm:text-xs font-semibold text-emerald-200">
+                            তাৎক্ষণিক সংগঠন চিত্র
+                          </span>
+                          <span className="font-mono-num text-xs text-slate-300">
+                            {stats.currentMonthName} {stats.currentYear}
+                          </span>
+                        </div>
+
+                        <div className="mt-4">
+                          <p className="text-sm sm:text-xs text-slate-300">বর্তমান মোট তহবিল (নেট স্থিতি)</p>
+                          <p className="mt-1 font-mono-num text-2xl sm:text-3xl font-bold text-white">
+                            ৳ {stats.netBalance.toLocaleString('en-US')}
+                          </p>
+                        </div>
+
+                        <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-white/15 pt-4 text-sm sm:text-xs">
+                          <div className="flex items-center justify-between sm:block">
+                            <dt className="text-slate-300">মোট আয়</dt>
+                            <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-emerald-300">
+                              ৳ {stats.totalIncome.toLocaleString('en-US')}
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between sm:block">
+                            <dt className="text-slate-300">মোট ব্যয়</dt>
+                            <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-rose-300">
+                              ৳ {stats.totalExpense.toLocaleString('en-US')}
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between sm:block">
+                            <dt className="text-slate-300">নিবন্ধিত সদস্য</dt>
+                            <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
+                              {stats.totalMembers} জন
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between sm:block">
+                            <dt className="text-slate-300">উপদেষ্টা মণ্ডলী</dt>
+                            <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
+                              {stats.totalAdvisors} জন
+                            </dd>
+                          </div>
+                        </dl>
+
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-t border-white/15 pt-3.5 text-sm sm:text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setSection('projects')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            প্রকল্পসমূহ →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('members')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            সদস্য ডিরেক্টরি →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('eyanot')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            এয়ানত শীট →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('expenses')}
+                            className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          >
+                            মাসিক ব্যয় →
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* 2. Key Transparency Strip */}
-            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px rounded-2xl border border-slate-200 bg-slate-200 shadow-xs overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setSection('finance')}
-                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
-                >
-                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
-                    <span>বর্তমান তহবিল</span>
-                    <Wallet className="h-4 w-4 text-emerald-700 shrink-0" />
-                  </div>
-                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-slate-900">
-                    ৳ {stats.netBalance.toLocaleString('en-US')}
-                  </p>
-                  <p className="mt-1.5 text-sm sm:text-xs font-semibold text-emerald-800">
-                    বিস্তারিত হিসাব →
-                  </p>
-                </button>
+            {/* 2. Key Transparency Strip (Only visible to logged-in User / Admin) */}
+            {!isVisitor && (
+              <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px rounded-2xl border border-slate-200 bg-slate-200 shadow-xs overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setSection('finance')}
+                    className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
+                      <span>বর্তমান তহবিল</span>
+                      <Wallet className="h-4 w-4 text-emerald-700 shrink-0" />
+                    </div>
+                    <p className="mt-1.5 font-mono-num text-2xl font-bold text-slate-900">
+                      ৳ {stats.netBalance.toLocaleString('en-US')}
+                    </p>
+                    <p className="mt-1.5 text-sm sm:text-xs font-semibold text-emerald-800">
+                      বিস্তারিত হিসাব →
+                    </p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSection('eyanot')}
-                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
-                >
-                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
-                    <span>মোট আয় ও এয়ানত</span>
-                    <HeartHandshake className="h-4 w-4 text-emerald-700 shrink-0" />
-                  </div>
-                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-emerald-800">
-                    ৳ {stats.totalIncome.toLocaleString('en-US')}
-                  </p>
-                  <p className="mt-1.5 font-mono-num text-sm sm:text-xs text-slate-500">
-                    এয়ানত: ৳ {totalEyanotCollected.toLocaleString('en-US')}
-                  </p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSection('eyanot')}
+                    className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
+                      <span>মোট আয় ও এয়ানত</span>
+                      <HeartHandshake className="h-4 w-4 text-emerald-700 shrink-0" />
+                    </div>
+                    <p className="mt-1.5 font-mono-num text-2xl font-bold text-emerald-800">
+                      ৳ {stats.totalIncome.toLocaleString('en-US')}
+                    </p>
+                    <p className="mt-1.5 font-mono-num text-sm sm:text-xs text-slate-500">
+                      এয়ানত: ৳ {totalEyanotCollected.toLocaleString('en-US')}
+                    </p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSection('expenses')}
-                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
-                >
-                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
-                    <span>মোট ব্যয়</span>
-                    <ReceiptText className="h-4 w-4 text-rose-700 shrink-0" />
-                  </div>
-                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-rose-700">
-                    ৳ {stats.totalExpense.toLocaleString('en-US')}
-                  </p>
-                  <p className="mt-1.5 text-sm sm:text-xs font-semibold text-slate-600">
-                    মাসিক ব্যয়ের বিবরণ →
-                  </p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSection('expenses')}
+                    className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
+                      <span>মোট ব্যয়</span>
+                      <ReceiptText className="h-4 w-4 text-rose-700 shrink-0" />
+                    </div>
+                    <p className="mt-1.5 font-mono-num text-2xl font-bold text-rose-700">
+                      ৳ {stats.totalExpense.toLocaleString('en-US')}
+                    </p>
+                    <p className="mt-1.5 text-sm sm:text-xs font-semibold text-slate-600">
+                      মাসিক ব্যয়ের বিবরণ →
+                    </p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSection('members')}
-                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
-                >
-                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
-                    <span>সক্রিয় সদস্যবৃন্দ</span>
-                    <Users className="h-4 w-4 text-emerald-700 shrink-0" />
-                  </div>
-                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-slate-900">
-                    {stats.activeMembers} জন
-                  </p>
-                  <p className="mt-1.5 text-sm sm:text-xs text-slate-500">
-                    মোট সদস্য {stats.totalMembers} · উপদেষ্টা {stats.totalAdvisors}
-                  </p>
-                </button>
-              </div>
-            </section>
+                  <button
+                    type="button"
+                    onClick={() => setSection('members')}
+                    className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
+                      <span>সক্রিয় সদস্যবৃন্দ</span>
+                      <Users className="h-4 w-4 text-emerald-700 shrink-0" />
+                    </div>
+                    <p className="mt-1.5 font-mono-num text-2xl font-bold text-slate-900">
+                      {stats.activeMembers} জন
+                    </p>
+                    <p className="mt-1.5 text-sm sm:text-xs text-slate-500">
+                      মোট সদস্য {stats.totalMembers} · উপদেষ্টা {stats.totalAdvisors}
+                    </p>
+                  </button>
+                </div>
+              </section>
+            )}
 
-            {/* 3. Financial Charts & Official Donation Desk (12-Column Balanced Grid) */}
+            {/* 3. Financial Charts (Logged-in) OR Public Mission Highlights (Visitor) + Official Donation Desk */}
             <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch">
-                {/* Left (7 cols): Income, Expense & Eyanot Donut + Project Pie */}
-                {(() => {
-                  const incomeVal = stats.totalIncome;
-                  const expenseVal = stats.totalExpense;
-                  const eyanotVal = totalEyanotCollected;
-                  const chartSegments = [
-                    {
-                      key: 'income',
-                      label: 'মোট আয়',
-                      value: incomeVal,
-                      formattedValue: `৳ ${incomeVal.toLocaleString('en-US')}`,
-                      color: '#16a34a',
-                    },
-                    {
-                      key: 'expense',
-                      label: 'মোট ব্যয়',
-                      value: expenseVal,
-                      formattedValue: `৳ ${expenseVal.toLocaleString('en-US')}`,
-                      color: '#dc2626',
-                    },
-                    {
-                      key: 'eyanot',
-                      label: 'মাসিক এয়ানত',
-                      value: eyanotVal,
-                      formattedValue: `৳ ${eyanotVal.toLocaleString('en-US')}`,
-                      color: '#2563eb',
-                    },
-                  ];
-
-                  return (
-                    <div className="lg:col-span-7 min-w-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xs">
+                {isVisitor ? (
+                  <div className="lg:col-span-7 min-w-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
+                    <div>
                       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-4">
                         <div className="min-w-0">
                           <h2 className="font-display text-lg sm:text-xl font-bold text-slate-900">
-                            আর্থিক ও এয়ানত সারসংক্ষেপ
+                            আমাদের সেবামূলক কার্যক্রম ও সমাজকল্যাণ
                           </h2>
                           <p className="mt-0.5 text-xs text-slate-500">
-                            {ORG_NAME} · রিয়েল-টাইম আয়, ব্যয় ও এয়ানত গ্রাফ
+                            {ORG_NAME} · দ্বীনি শিক্ষা, দাওয়াহ ও মানবকল্যাণমূলক উদ্যোগ
                           </p>
                         </div>
                         <button
                           type="button"
-                          onClick={() => setSection('finance')}
+                          onClick={() => setSection('about')}
                           className="text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
                         >
-                          বিস্তারিত হিসাব দেখুন →
+                          বিস্তারিত জানুন →
                         </button>
                       </div>
 
-                      <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-12 md:items-center">
-                        <div className="md:col-span-7 min-w-0 flex items-center justify-center">
-                          <DonutChart
-                            centerLabel="বর্তমান তহবিল"
-                            centerValue={`৳ ${stats.netBalance.toLocaleString('en-US')}`}
-                            segments={chartSegments}
-                            size="sm"
-                            borderless={true}
-                          />
+                      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                          <p className="font-display text-sm font-bold text-slate-900">
+                            দ্বীনি শিক্ষা ও দাওয়াহ
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                            ইসলামী জ্ঞান বিস্তার, নামাজের স্থায়ী ক্যালেন্ডার ও সচেতনতামূলক দাওয়াহ কার্যক্রম পরিচালনা।
+                          </p>
                         </div>
-
-                        {/* Separated by hairline divider instead of nested card */}
-                        <div className="md:col-span-5 min-w-0 md:border-l md:border-slate-200 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 flex flex-col items-center gap-3">
-                          <div className="text-center">
-                            <h3 className="font-display text-sm font-bold leading-snug text-slate-900">
-                              দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয়
-                            </h3>
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {projectFinanceStats.totalProjectDonors > 0
-                                ? `${projectFinanceStats.totalProjectDonors} জনের দান · প্রকল্প হিসাব`
-                                : 'প্রকল্প ও দান হিসাব'}
-                            </p>
-                          </div>
-
-                          <PieChart
-                            sizePx={104}
-                            ariaLabel="দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয় পাই চার্ট"
-                            segments={[
-                              {
-                                key: 'project-income',
-                                label: 'প্রকল্প আয়',
-                                value: projectFinanceStats.totalProjectIncome,
-                                formattedValue: `৳ ${projectFinanceStats.totalProjectIncome.toLocaleString('en-US')}`,
-                                color: '#16a34a',
-                              },
-                              {
-                                key: 'project-expense',
-                                label: 'প্রকল্প ব্যয়',
-                                value: projectFinanceStats.totalProjectExpense,
-                                formattedValue: `৳ ${projectFinanceStats.totalProjectExpense.toLocaleString('en-US')}`,
-                                color: '#dc2626',
-                              },
-                            ]}
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => setSection('projects')}
-                            className="text-xs font-semibold text-emerald-800 hover:underline whitespace-nowrap"
-                          >
-                            প্রকল্প বিস্তারিত দেখুন →
-                          </button>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                          <p className="font-display text-sm font-bold text-slate-900">
+                            এতিম ও দুস্থ সহায়তা
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                            অসহায় পরিবার, এতিম শিক্ষার্থী ও জরুরি মানবিক প্রয়োজনে নিয়মিত সেবা প্রদান।
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                          <p className="font-display text-sm font-bold text-slate-900">
+                            জরুরি রক্তদান ডিরেক্টরি
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                            সদস্যদের রক্তের গ্রুপ অনুযায়ী দ্রুত যোগাযোগ ও জরুরি রক্তদানে সহযোগিতা।
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                          <p className="font-display text-sm font-bold text-slate-900">
+                            সদস্য ও উপদেষ্টা পরিষদ
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                            বর্তমানে {stats.activeMembers} জন সক্রিয় সদস্য ও {stats.totalAdvisors} জন উপদেষ্টার সমন্বয়ে পরিচালিত।
+                          </p>
                         </div>
                       </div>
                     </div>
-                  );
-                })()}
+
+                    <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setSection('projects')}
+                        className="rounded-lg bg-emerald-800 px-3.5 py-2 font-semibold text-white hover:bg-emerald-900 transition-colors"
+                      >
+                        চলমান ও সম্পন্ন প্রকল্প দেখুন →
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSection('members')}
+                        className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        সদস্য তালিকা
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSection('advisors')}
+                        className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        উপদেষ্টা মণ্ডলী
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  (() => {
+                    const incomeVal = stats.totalIncome;
+                    const expenseVal = stats.totalExpense;
+                    const eyanotVal = totalEyanotCollected;
+                    const chartSegments = [
+                      {
+                        key: 'income',
+                        label: 'মোট আয়',
+                        value: incomeVal,
+                        formattedValue: `৳ ${incomeVal.toLocaleString('en-US')}`,
+                        color: '#16a34a',
+                      },
+                      {
+                        key: 'expense',
+                        label: 'মোট ব্যয়',
+                        value: expenseVal,
+                        formattedValue: `৳ ${expenseVal.toLocaleString('en-US')}`,
+                        color: '#dc2626',
+                      },
+                      {
+                        key: 'eyanot',
+                        label: 'মাসিক এয়ানত',
+                        value: eyanotVal,
+                        formattedValue: `৳ ${eyanotVal.toLocaleString('en-US')}`,
+                        color: '#2563eb',
+                      },
+                    ];
+
+                    return (
+                      <div className="lg:col-span-7 min-w-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xs">
+                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-4">
+                          <div className="min-w-0">
+                            <h2 className="font-display text-lg sm:text-xl font-bold text-slate-900">
+                              আর্থিক ও এয়ানত সারসংক্ষেপ
+                            </h2>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {ORG_NAME} · রিয়েল-টাইম আয়, ব্যয় ও এয়ানত গ্রাফ
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSection('finance')}
+                            className="text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                          >
+                            বিস্তারিত হিসাব দেখুন →
+                          </button>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-12 md:items-center">
+                          <div className="md:col-span-7 min-w-0 flex items-center justify-center">
+                            <DonutChart
+                              centerLabel="বর্তমান তহবিল"
+                              centerValue={`৳ ${stats.netBalance.toLocaleString('en-US')}`}
+                              segments={chartSegments}
+                              size="sm"
+                              borderless={true}
+                            />
+                          </div>
+
+                          {/* Separated by hairline divider instead of nested card */}
+                          <div className="md:col-span-5 min-w-0 md:border-l md:border-slate-200 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 flex flex-col items-center gap-3">
+                            <div className="text-center">
+                              <h3 className="font-display text-sm font-bold leading-snug text-slate-900">
+                                দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয়
+                              </h3>
+                              <p className="mt-0.5 text-xs text-slate-500">
+                                {projectFinanceStats.totalProjectDonors > 0
+                                  ? `${projectFinanceStats.totalProjectDonors} জনের দান · প্রকল্প হিসাব`
+                                  : 'প্রকল্প ও দান হিসাব'}
+                              </p>
+                            </div>
+
+                            <PieChart
+                              sizePx={104}
+                              ariaLabel="দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয় পাই চার্ট"
+                              segments={[
+                                {
+                                  key: 'project-income',
+                                  label: 'প্রকল্প আয়',
+                                  value: projectFinanceStats.totalProjectIncome,
+                                  formattedValue: `৳ ${projectFinanceStats.totalProjectIncome.toLocaleString('en-US')}`,
+                                  color: '#16a34a',
+                                },
+                                {
+                                  key: 'project-expense',
+                                  label: 'প্রকল্প ব্যয়',
+                                  value: projectFinanceStats.totalProjectExpense,
+                                  formattedValue: `৳ ${projectFinanceStats.totalProjectExpense.toLocaleString('en-US')}`,
+                                  color: '#dc2626',
+                                },
+                              ]}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => setSection('projects')}
+                              className="text-xs font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                            >
+                              প্রকল্প বিস্তারিত দেখুন →
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
 
                 {/* Right (5 cols): Official Donation & Contact Card */}
                 <div className="lg:col-span-5 min-w-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
@@ -1130,13 +1309,82 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 </button>
               </div>
 
-              {homeProjectsList.length > 0 ? (
-                <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
-                  {homeProjectsList.slice(0, 3).map((project) => (
+              {(() => {
+                const displayedHomeProjects = isVisitor
+                  ? visitorVisibleProjects
+                  : homeProjectsList;
+                return displayedHomeProjects.length > 0 ? (
+                  <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
+                    {displayedHomeProjects.slice(0, 3).map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        variant="home"
+                        hideFinancials={isVisitor}
+                        canPrintPdf={isAdmin}
+                        onPrintProject={
+                          isAdmin
+                            ? (p) => setPdfPreviewPayload(buildProjectPdfPayload(p, orgFinanceSummary))
+                            : undefined
+                        }
+                        onPrintDonor={
+                          isAdmin
+                            ? (p, donor, idx) =>
+                                setPdfPreviewPayload(
+                                  buildDonorPdfPayload(p, donor, idx, orgFinanceSummary)
+                                )
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-xs">
+                    <p className="font-display text-base font-semibold text-slate-600">
+                      শীঘ্রই নতুন প্রকল্প আসছে...
+                    </p>
+                  </div>
+                );
+              })()}
+            </section>
+          </div>
+        )}
+
+        {section === 'projects' && (
+          <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10 space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-slate-900">
+                  কল্যাণ প্রকল্প ও কর্মসূচি
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {ORG_NAME}-এর চলমান ও সম্পন্ন মানবিক কার্যক্রম
+                </p>
+              </div>
+              {isAdmin && onAdminQuickEdit && (
+                <button
+                  type="button"
+                  onClick={() => onAdminQuickEdit('projects')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap self-start"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  প্রকল্প সম্পাদনা
+                </button>
+              )}
+            </div>
+
+            {(() => {
+              const displayedPageProjects = isVisitor
+                ? projectsList.filter((p) => p.status === 'চলমান' || p.status === 'সম্পন্ন')
+                : projectsList;
+              return displayedPageProjects.length > 0 ? (
+                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  {displayedPageProjects.map((project) => (
                     <ProjectCard
                       key={project.id}
                       project={project}
-                      variant="home"
+                      variant="page"
+                      hideFinancials={isVisitor}
                       canPrintPdf={isAdmin}
                       onPrintProject={
                         isAdmin
@@ -1155,70 +1403,13 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-xs">
-                  <p className="font-display text-base font-semibold text-slate-600">
-                    শীঘ্রই নতুন প্রকল্প আসছে...
+                <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+                  <p className="font-display text-base sm:text-lg font-medium text-slate-700 leading-relaxed">
+                    বর্তমানে আমাদের হাতে কোনো চলমান প্রকল্প নেই। নতুন প্রকল্প শুরু হলে এখানে জানানো হবে।
                   </p>
                 </div>
-              )}
-            </section>
-          </div>
-        )}
-
-        {section === 'projects' && (
-          <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10 space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="font-display text-2xl font-bold text-slate-900">
-                  কল্যাণ প্রকল্প ও কর্মসূচি
-                </h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  {ORG_NAME}-এর চলমান, সম্পন্ন ও পরিকল্পিত মানবিক কার্যক্রম
-                </p>
-              </div>
-              {isAdmin && onAdminQuickEdit && (
-                <button
-                  type="button"
-                  onClick={() => onAdminQuickEdit('projects')}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap self-start"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  প্রকল্প সম্পাদনা
-                </button>
-              )}
-            </div>
-
-            {projectsList.length > 0 ? (
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {projectsList.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    variant="page"
-                    canPrintPdf={isAdmin}
-                    onPrintProject={
-                      isAdmin
-                        ? (p) => setPdfPreviewPayload(buildProjectPdfPayload(p, orgFinanceSummary))
-                        : undefined
-                    }
-                    onPrintDonor={
-                      isAdmin
-                        ? (p, donor, idx) =>
-                            setPdfPreviewPayload(
-                              buildDonorPdfPayload(p, donor, idx, orgFinanceSummary)
-                            )
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-                <p className="font-display text-base sm:text-lg font-medium text-slate-700 leading-relaxed">
-                  বর্তমানে আমাদের হাতে কোনো চলমান প্রকল্প নেই। নতুন প্রকল্প শুরু হলে এখানে জানানো হবে।
-                </p>
-              </div>
-            )}
+              );
+            })()}
 
             <Suspense fallback={SectionFallback}>
               <DonateSection onSubmitDonation={onSubmitDonation} />
