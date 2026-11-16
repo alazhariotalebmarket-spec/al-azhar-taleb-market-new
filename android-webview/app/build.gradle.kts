@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "org.alazhar.islamicsongstha"
+    namespace = "com.alazhar.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "org.alazhar.islamicsongstha"
+        applicationId = "com.alazhar.app"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

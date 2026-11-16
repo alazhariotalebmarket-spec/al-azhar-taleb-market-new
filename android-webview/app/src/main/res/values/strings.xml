@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">আল আজহার ইসলামী সংস্থা</string>
+    <string name="app_name">Al Azhar</string>
+    <string name="org_full_name">আল আজহার ইসলামী সংস্থা</string>
+    <string name="org_tagline">শিক্ষা, সেবা, দাওয়াহ, ঐক্য</string>
     <string name="loading_message">ওয়েবসাইট লোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</string>
     <string name="offline_title">ইন্টারনেট সংযোগ পাওয়া যাচ্ছে না</string>
     <string name="offline_subtitle">অ্যাপটি চালাতে অনুগ্রহ করে মোবাইল ডেটা বা ওয়াইফাই চালু করে আবার চেষ্টা করুন।</string>

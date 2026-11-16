@@ -1,18 +1,18 @@
-# আল আজহার ইসলামী সংস্থা — Android WebView APK
+# Al Azhar — Android WebView Project
 
-এই ফোল্ডারে আপনার অ্যাপের (`https://alazhar-app.vercel.app`) জন্য সম্পূর্ণ **Android WebView APK** প্রজেক্ট রয়েছে।
+- **App Name:** Al Azhar
+- **Package Name:** `com.alazhar.app`
+- **Website URL:** `https://alazhar-app.vercel.app`
+- **Entry Behavior:** Opens with branded Splash Screen (`SplashActivity`) directly into the website in **Visitor** mode (no extra native login screen; User/Admin login and role switching run inside the website).
 
-## অটো-আপডেট কীভাবে কাজ করে?
-- APK টি সরাসরি লাইভ লিংক `https://alazhar-app.vercel.app` লোড করে।
-- অ্যাপ চালু হওয়ার সময় পুরনো HTTP ক্যাশ পরিষ্কার করে সর্বশেষ ভার্সন লোড করে (এবং উপরে টেনে Pull-to-Refresh করা যায়)।
-- তাই আপনি **AI Studio থেকে আপডেট করে Vercel-এ ডিপ্লয় করলেই** ব্যবহারকারীর ফোনের APK-তে **স্বয়ংক্রিয়ভাবে নতুন আপডেট চলে আসবে** — বারবার নতুন APK বানানো লাগবে না।
+## Open in Android Studio
+1. Open the `android-webview` folder in Android Studio (**File → Open → `android-webview`**).
+2. Let Gradle sync complete (uses SDK 34, Kotlin `1.9.24`, AndroidX WebView + SwipeRefreshLayout + Material).
+3. Click **Build → Build Bundle(s) / APK(s) → Build APK(s)** or run directly on a device/emulator.
 
-## মোবাইল বা পিসি থেকে APK ফাইল তৈরি করার সবচেয়ে সহজ উপায় (GitHub Actions):
-1. AI Studio থেকে প্রজেক্টটি **GitHub**-এ পুশ করুন।
-2. GitHub রিপোজিটরির **Actions** ট্যাবে যান → **Build Al Azhar WebView APK** সিলেক্ট করে **Run workflow** বাটনে ক্লিক করুন (প্রথম পুশেই অটো রান হবে)।
-3. ২ মিনিটের মধ্যে বিল্ড শেষ হলে **Artifacts** থেকে **`Al-Azhar-WebView-APK`** ডাউনলোড করে আনজিপ করলেই `app-debug.apk` ফাইল পাবেন।
-
-## Android Studio দিয়ে (পিসিতে) APK তৈরি করতে চাইলে:
-1. Android Studio-তে `android-webview` ফোল্ডারটি ওপেন করুন।
-2. **Build → Build Bundle(s) / APK(s) → Build APK(s)** ক্লিক করুন।
-3. তৈরি হওয়া `.apk` ফাইলটি ফোনে ইনস্টল করুন।
+## Included Files
+- `app/src/main/java/com/alazhar/app/SplashActivity.kt` + `res/layout/activity_splash.xml`
+- `app/src/main/java/com/alazhar/app/MainActivity.kt` + `res/layout/activity_main.xml`
+- `app/src/main/AndroidManifest.xml` (`INTERNET` & `ACCESS_NETWORK_STATE` permissions)
+- `app/src/main/res/drawable/ic_launcher_logo.jpg` (App icon & Splash logo)
+- `app/build.gradle.kts`, `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`

@@ -7,4 +7,12 @@
         <item name="android:statusBarColor">@color/emerald_primary</item>
         <item name="android:windowBackground">@color/surface_bg</item>
     </style>
+
+    <style name="Theme.AlAzharWebView.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/emerald_primary</item>
+        <item name="colorPrimaryVariant">@color/emerald_dark</item>
+        <item name="android:statusBarColor">@color/emerald_dark</item>
+        <item name="android:navigationBarColor">@color/emerald_dark</item>
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
 </resources>

@@ -1,4 +1,4 @@
-package org.alazhar.islamicsongstha
+package com.alazhar.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -135,7 +135,6 @@ class MainActivity : AppCompatActivity() {
             mediaPlaybackRequiresUserGesture = false
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-            // Remove default "; wv" token so Google OAuth / Drive popups work reliably
             if (userAgentString.contains("; wv")) {
                 userAgentString = userAgentString.replace("; wv", "")
             }
@@ -201,7 +200,6 @@ class MainActivity : AppCompatActivity() {
                     return false
                 }
 
-                // Allow sub-frames (e.g. Firebase Auth / Google Identity iframes) inside WebView
                 if (!request.isForMainFrame) {
                     return false
                 }
