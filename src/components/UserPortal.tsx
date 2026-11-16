@@ -648,14 +648,14 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 <div className="relative z-10 grid grid-cols-1 gap-6 p-5 sm:p-9 lg:grid-cols-12 lg:items-center lg:gap-10 lg:p-11">
                   {/* Hero Brand & Mission */}
                   <div className="lg:col-span-7 text-center lg:text-left">
-                    <div className="flex flex-col items-center gap-4 sm:flex-row lg:items-center">
+                    <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
                       <OrgLogo
                         src={activeLogoSrc}
                         alt={ORG_NAME}
                         variant="standard"
-                        className="!h-16 !w-16 sm:!h-20 sm:!w-20 border-2 border-white/75 shadow-md"
+                        className="!h-16 !w-16 sm:!h-20 sm:!w-20 border-2 border-white/75 shadow-md shrink-0"
                       />
-                      <div>
+                      <div className="text-center sm:text-left">
                         <p className="text-sm font-semibold tracking-wide text-emerald-300">
                           {ORG_TAGLINE}
                         </p>
