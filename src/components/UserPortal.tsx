@@ -9,6 +9,7 @@ import {
   Download,
   Droplets,
   FileText,
+  HeartHandshake,
   Lock,
   Mail,
   MapPin,
@@ -19,6 +20,8 @@ import {
   ReceiptText,
   Search,
   UserPlus,
+  Users,
+  Wallet,
   X,
 } from 'lucide-react';
 import {
@@ -481,10 +484,10 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
       <main className="flex-1">
         {section === 'home' && (
-          <div>
-            {/* Home Page Banner */}
-            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6 sm:pt-8">
-              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-emerald-950 shadow-sm h-auto min-h-[560px] sm:min-h-0 sm:h-[430px] flex flex-col justify-center">
+          <div className="pb-10 sm:pb-14">
+            {/* 1. Institutional Hero Banner */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-5 sm:pt-7">
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-950/20 bg-emerald-950 shadow-sm">
                 <img
                   src={HOME_BANNER_URL}
                   alt={ORG_NAME}
@@ -494,124 +497,220 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   fetchPriority="high"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-950/40" />
-                <div className="relative z-10 flex flex-col items-center justify-center p-6 pt-[90px] pb-[40px] text-center sm:p-10">
-                  <div className="flex flex-col items-center gap-3">
-                    <OrgLogo
-                      src={activeLogoSrc}
-                      alt={ORG_NAME}
-                      variant="standard"
-                      className="!w-[64px] !h-[64px] sm:!w-[76px] sm:!h-[76px] md:!w-24 md:!h-24 border-2 border-white/70 shadow-md"
-                    />
-                    <div>
-                      <p className="text-[11px] sm:text-sm font-semibold tracking-wide text-emerald-200">
-                        {ORG_TAGLINE}
-                      </p>
-                      <h1 className="mt-1 font-display text-2xl sm:text-5xl font-bold tracking-tight text-white text-balance">
-                        {ORG_NAME}
-                      </h1>
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/80 to-emerald-950/75" />
+
+                <div className="relative z-10 grid gap-7 p-6 sm:p-9 lg:grid-cols-12 lg:items-center lg:gap-10 lg:p-11">
+                  {/* Hero Brand & Mission */}
+                  <div className="lg:col-span-7 text-center lg:text-left">
+                    <div className="flex flex-col items-center gap-4 sm:flex-row lg:items-center">
+                      <OrgLogo
+                        src={activeLogoSrc}
+                        alt={ORG_NAME}
+                        variant="standard"
+                        className="!h-16 !w-16 sm:!h-20 sm:!w-20 border-2 border-white/75 shadow-md"
+                      />
+                      <div>
+                        <p className="text-xs sm:text-sm font-semibold tracking-wide text-emerald-300">
+                          {ORG_TAGLINE}
+                        </p>
+                        <h1 className="mt-1 font-display text-2xl sm:text-4xl lg:text-[42px] font-bold leading-tight tracking-tight text-white text-balance">
+                          {ORG_NAME}
+                        </h1>
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-2.5 max-w-xl text-xs sm:text-base leading-relaxed text-slate-200 px-1 sm:px-0">
-                    মানবকল্যাণ, দ্বীনি শিক্ষা প্রসার, এতিম সহায়তা ও স্বচ্ছ সামাজিক সেবায় নিবেদিত একটি অরাজনৈতিক ও অলাভজনক ইসলামী কল্যাণমূলক সংগঠন।
-                  </p>
-                  <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setSection('finance')}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-600 shadow-xs whitespace-nowrap"
-                    >
-                      আর্থিক স্বচ্ছতা দেখুন
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                    {onSubmitApplication && (
+
+                    <p className="mt-4 max-w-2xl mx-auto lg:mx-0 text-sm sm:text-base leading-relaxed text-slate-200">
+                      মানবকল্যাণ, দ্বীনি শিক্ষা প্রসার, এতিম সহায়তা ও স্বচ্ছ সামাজিক সেবায় নিবেদিত একটি অরাজনৈতিক ও অলাভজনক ইসলামী কল্যাণমূলক সংগঠন।
+                    </p>
+
+                    <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center lg:justify-start gap-3">
                       <button
                         type="button"
-                        onClick={() => setApplyModalOpen(true)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/25 shadow-xs whitespace-nowrap"
+                        onClick={() => setSection('finance')}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 shadow-xs whitespace-nowrap"
                       >
-                        <UserPlus className="h-4 w-4" />
-                        সদস্য হওয়ার আবেদন
+                        আর্থিক স্বচ্ছতা দেখুন
+                        <ArrowRight className="h-4 w-4" />
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setSection('about')}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20 shadow-xs whitespace-nowrap"
-                    >
-                      আমাদের সম্পর্কে
-                    </button>
+                      {onSubmitApplication && (
+                        <button
+                          type="button"
+                          onClick={() => setApplyModalOpen(true)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/12 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20 whitespace-nowrap"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          সদস্য হওয়ার আবেদন
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSection('about')}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-transparent px-4 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10 whitespace-nowrap"
+                      >
+                        আমাদের সম্পর্কে
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Hero Quick Overview & Navigation Panel */}
+                  <div className="lg:col-span-5">
+                    <div className="rounded-xl border border-white/15 bg-slate-950/60 p-5 backdrop-blur-md text-white">
+                      <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-3">
+                        <span className="text-xs font-semibold text-emerald-200">
+                          তাৎক্ষণিক সংগঠন চিত্র
+                        </span>
+                        <span className="font-mono-num text-xs text-slate-300">
+                          {stats.currentMonthName} {stats.currentYear}
+                        </span>
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="text-xs text-slate-300">বর্তমান মোট তহবিল (নেট স্থিতি)</p>
+                        <p className="mt-1 font-mono-num text-2xl sm:text-3xl font-bold text-white">
+                          ৳ {stats.netBalance.toLocaleString('en-US')}
+                        </p>
+                      </div>
+
+                      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4 text-xs">
+                        <div>
+                          <dt className="text-slate-300">মোট আয়</dt>
+                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-emerald-300">
+                            ৳ {stats.totalIncome.toLocaleString('en-US')}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-300">মোট ব্যয়</dt>
+                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-rose-300">
+                            ৳ {stats.totalExpense.toLocaleString('en-US')}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-300">নিবন্ধিত সদস্য</dt>
+                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-white">
+                            {stats.totalMembers} জন
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-300">উপদেষ্টা মণ্ডলী</dt>
+                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-white">
+                            {stats.totalAdvisors} জন
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/15 pt-3.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setSection('projects')}
+                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                        >
+                          প্রকল্পসমূহ →
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSection('members')}
+                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                        >
+                          সদস্য ডিরেক্টরি →
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSection('eyanot')}
+                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                        >
+                          এয়ানত শীট →
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSection('expenses')}
+                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                        >
+                          মাসিক ব্যয় →
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Two Side-by-Side Cards: Pink Donation Card & Income-Expense Donut Chart Card */}
-            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10">
-              <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
-                {/* 1. Left Side: Pink Donation Card */}
-                <div className="flex flex-col justify-between rounded-2xl border border-pink-200 bg-pink-50/70 p-6 sm:p-8 shadow-xs">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E2136E]/10 px-3 py-1 text-xs font-bold text-[#E2136E]">
-                        বিকাশ পার্সোনাল
-                      </span>
-                      <Phone className="h-5 w-5 text-[#E2136E]" />
-                    </div>
-
-                    <h2 className="mt-4 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
-                      আল্লাহর রাস্তায় দান করুন
-                    </h2>
-                    <p className="mt-1.5 text-xs sm:text-sm font-medium text-slate-600">
-                      বিকাশ পার্সোনাল নাম্বার
-                    </p>
-
-                    <div className="mt-4 flex flex-wrap items-baseline gap-3">
-                      <span className="font-mono-num text-2xl sm:text-3xl font-black tracking-wider text-[#E2136E]">
-                        +8801810893388
-                      </span>
-                    </div>
+            {/* 2. Key Transparency Strip */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setSection('finance')}
+                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                    <span>বর্তমান তহবিল</span>
+                    <Wallet className="h-4 w-4 text-emerald-700 shrink-0" />
                   </div>
+                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-slate-900">
+                    ৳ {stats.netBalance.toLocaleString('en-US')}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-emerald-800">
+                    বিস্তারিত হিসাব →
+                  </p>
+                </button>
 
-                  <div className="mt-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                      <a
-                        href={ORG_CONTACT.phoneTelHref}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-900 shadow-xs whitespace-nowrap"
-                      >
-                        <Phone className="h-4 w-4" />
-                        কল করুন
-                      </a>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const ok = await copyTextToClipboard('+8801810893388');
-                          if (ok) {
-                            setHomeCopiedMsg('নাম্বার কপি হয়েছে: +8801810893388');
-                            setTimeout(() => setHomeCopiedMsg(null), 3000);
-                          }
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#E2136E] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-[#c50f5e] shadow-xs whitespace-nowrap"
-                      >
-                        <Copy className="h-4 w-4" />
-                        নাম্বার কপি করুন
-                      </button>
-                    </div>
-
-                    {homeCopiedMsg && (
-                      <div className="flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-emerald-800 border border-pink-200 shadow-xs">
-                        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span className="font-mono-num">{homeCopiedMsg}</span>
-                      </div>
-                    )}
-
-                    <p className="border-t border-pink-200/80 pt-3 text-xs font-medium text-slate-600">
-                      দান পাঠিয়ে আমাদের জানান, জাযাকাল্লাহু খাইরান
-                    </p>
+                <button
+                  type="button"
+                  onClick={() => setSection('eyanot')}
+                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                    <span>মোট আয় ও এয়ানত</span>
+                    <HeartHandshake className="h-4 w-4 text-emerald-700 shrink-0" />
                   </div>
-                </div>
+                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-emerald-800">
+                    ৳ {stats.totalIncome.toLocaleString('en-US')}
+                  </p>
+                  <p className="mt-1 font-mono-num text-xs text-slate-500">
+                    এয়ানত: ৳ {totalEyanotCollected.toLocaleString('en-US')}
+                  </p>
+                </button>
 
-                {/* 2. Right Side: Income, Expense & Eyanot Donut Chart Card */}
+                <button
+                  type="button"
+                  onClick={() => setSection('expenses')}
+                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                    <span>মোট ব্যয়</span>
+                    <ReceiptText className="h-4 w-4 text-rose-700 shrink-0" />
+                  </div>
+                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-rose-700">
+                    ৳ {stats.totalExpense.toLocaleString('en-US')}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-slate-600">
+                    মাসিক ব্যয়ের বিবরণ →
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSection('members')}
+                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                    <span>সক্রিয় সদস্যবৃন্দ</span>
+                    <Users className="h-4 w-4 text-emerald-700 shrink-0" />
+                  </div>
+                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-slate-900">
+                    {stats.activeMembers} জন
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    মোট সদস্য {stats.totalMembers} · উপদেষ্টা {stats.totalAdvisors}
+                  </p>
+                </button>
+              </div>
+            </section>
+
+            {/* 3. Financial Charts & Official Donation Desk (12-Column Balanced Grid) */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8">
+              <div className="grid gap-6 lg:grid-cols-12 lg:items-stretch">
+                {/* Left (7 cols): Income, Expense & Eyanot Donut + Project Pie */}
                 {(() => {
                   const incomeVal = stats.totalIncome;
                   const expenseVal = stats.totalExpense;
@@ -641,27 +740,27 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   ];
 
                   return (
-                    <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-                      <div>
-                        <div className="flex items-center justify-between">
+                    <div className="lg:col-span-7 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+                      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-4">
+                        <div>
                           <h2 className="font-display text-lg sm:text-xl font-bold text-slate-900">
                             আর্থিক ও এয়ানত সারসংক্ষেপ
                           </h2>
-                          <button
-                            type="button"
-                            onClick={() => setSection('finance')}
-                            className="text-xs sm:text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
-                          >
-                            বিস্তারিত হিসাব দেখুন →
-                          </button>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {ORG_NAME} · রিয়েল-টাইম আয়, ব্যয় ও এয়ানত গ্রাফ
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {ORG_NAME} · রিয়েল-টাইম আয়, ব্যয় ও এয়ানত গ্রাফ
-                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setSection('finance')}
+                          className="text-xs sm:text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                        >
+                          বিস্তারিত হিসাব দেখুন →
+                        </button>
                       </div>
 
-                      <div className="mt-4 flex flex-col sm:flex-row items-center sm:items-stretch justify-between gap-4">
-                        <div className="flex-1 min-w-0 w-full flex items-center justify-center">
+                      <div className="mt-5 grid gap-6 md:grid-cols-12 md:items-center">
+                        <div className="md:col-span-7 flex items-center justify-center">
                           <DonutChart
                             centerLabel="বর্তমান তহবিল"
                             centerValue={`৳ ${stats.netBalance.toLocaleString('en-US')}`}
@@ -671,13 +770,13 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                           />
                         </div>
 
-                        {/* Small Separate Pie Chart: Donations & Other Projects Income vs Expense */}
-                        <div className="w-full sm:w-[196px] shrink-0 rounded-xl border border-slate-200/90 bg-slate-50/75 p-3 flex flex-col items-center justify-between gap-2.5">
+                        {/* Separated by hairline divider instead of nested card */}
+                        <div className="md:col-span-5 md:border-l md:border-slate-200 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 flex flex-col items-center gap-3">
                           <div className="text-center">
-                            <h3 className="font-display text-xs font-bold leading-snug text-slate-900">
+                            <h3 className="font-display text-sm font-bold leading-snug text-slate-900">
                               দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয়
                             </h3>
-                            <p className="mt-0.5 text-[10px] text-slate-500">
+                            <p className="mt-0.5 text-xs text-slate-500">
                               {projectFinanceStats.totalProjectDonors > 0
                                 ? `${projectFinanceStats.totalProjectDonors} জনের দান · প্রকল্প হিসাব`
                                 : 'প্রকল্প ও দান হিসাব'}
@@ -685,7 +784,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                           </div>
 
                           <PieChart
-                            sizePx={92}
+                            sizePx={104}
                             ariaLabel="দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয় পাই চার্ট"
                             segments={[
                               {
@@ -708,7 +807,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                           <button
                             type="button"
                             onClick={() => setSection('projects')}
-                            className="text-[11px] font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                            className="text-xs font-semibold text-emerald-800 hover:underline whitespace-nowrap"
                           >
                             প্রকল্প বিস্তারিত দেখুন →
                           </button>
@@ -717,12 +816,92 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                     </div>
                   );
                 })()}
+
+                {/* Right (5 cols): Official Donation & Contact Card */}
+                <div className="lg:col-span-5 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-xs font-semibold text-[#E2136E]">
+                          অফিশিয়াল অনুদান · বিকাশ পার্সোনাল
+                        </p>
+                        <h2 className="mt-1 font-display text-xl sm:text-2xl font-bold text-slate-900">
+                          আল্লাহর রাস্তায় দান করুন
+                        </h2>
+                      </div>
+                      <Phone className="h-5 w-5 text-[#E2136E] shrink-0" />
+                    </div>
+
+                    <p className="mt-4 text-sm leading-relaxed text-slate-600">
+                      আপনার যাকাত, সাদাকাহ ও কল্যাণমূলক অনুদান এতিম সহায়তা, দ্বীনি শিক্ষা ও মানবসেবায় সরাসরি ব্যয় করা হয়।
+                    </p>
+
+                    <div className="mt-5 rounded-xl border border-rose-200/80 bg-rose-50/50 p-4">
+                      <p className="text-xs font-medium text-slate-600">
+                        বিকাশ পার্সোনাল নাম্বার
+                      </p>
+                      <p className="mt-1 font-mono-num text-2xl sm:text-[26px] font-bold tracking-wide text-[#E2136E]">
+                        +8801810893388
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = await copyTextToClipboard('+8801810893388');
+                          if (ok) {
+                            setHomeCopiedMsg('নাম্বার কপি হয়েছে: +8801810893388');
+                            setTimeout(() => setHomeCopiedMsg(null), 3000);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#E2136E] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-[#c50f5e] shadow-xs whitespace-nowrap"
+                      >
+                        <Copy className="h-4 w-4" />
+                        নাম্বার কপি
+                      </button>
+                      <a
+                        href={ORG_CONTACT.phoneTelHref}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 whitespace-nowrap"
+                      >
+                        <Phone className="h-4 w-4 text-emerald-700" />
+                        কল করুন
+                      </a>
+                    </div>
+
+                    {homeCopiedMsg && (
+                      <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-900">
+                        <Check className="h-4 w-4 text-emerald-700 shrink-0" />
+                        <span className="font-mono-num">{homeCopiedMsg}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 border-t border-slate-100 pt-4 space-y-2.5 text-xs text-slate-600">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />
+                      <span>
+                        {ORG_CONTACT.addressLine1}, {ORG_CONTACT.addressLine2}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <span className="text-slate-500">দান পাঠিয়ে আমাদের জানান, জাযাকাল্লাহু খাইরান</span>
+                      <button
+                        type="button"
+                        onClick={() => setSection('contact')}
+                        className="font-semibold text-emerald-800 hover:underline whitespace-nowrap shrink-0"
+                      >
+                        অনুদান ফর্ম →
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 
-            {/* Latest Notices Preview */}
+            {/* 4. Latest Notices Editorial Feed */}
             {sortedNotices.length > 0 && (
-              <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10">
+              <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-10">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="font-display text-2xl font-bold text-slate-900">সাম্প্রতিক নোটিশ</h2>
@@ -739,36 +918,46 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   </button>
                 </div>
 
-                <div className="mt-6 space-y-4">
+                <div className="mt-5 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
                   {sortedNotices.slice(0, 3).map((notice) => (
-                    <div
+                    <article
                       key={notice.id}
-                      className={`rounded-2xl border p-5 sm:p-6 shadow-xs ${
-                        notice.important
-                          ? 'border-red-200 bg-red-50/40'
-                          : 'border-slate-200 bg-white'
+                      className={`p-5 sm:p-6 transition-colors ${
+                        notice.important ? 'bg-red-50/35' : 'bg-white'
                       }`}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {notice.important && (
-                            <span className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white">
-                              জরুরী
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            {notice.important ? (
+                              <span className="inline-flex items-center gap-1 font-bold text-red-700">
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                জরুরী
+                              </span>
+                            ) : (
+                              <Bell className="h-3.5 w-3.5 text-emerald-700" />
+                            )}
+                            <span
+                              className={
+                                notice.important
+                                  ? 'font-semibold text-red-700'
+                                  : 'font-semibold text-emerald-800'
+                              }
+                            >
+                              {notice.category}
                             </span>
-                          )}
-                          <span
-                            className={
-                              notice.important
-                                ? 'font-semibold text-red-700'
-                                : 'font-semibold text-emerald-800'
-                            }
-                          >
-                            {notice.category}
-                          </span>
-                          <span className="text-slate-300">·</span>
-                          <span className="font-mono-num font-medium text-slate-700">
-                            {notice.displayDate || notice.date}
-                          </span>
+                            <span aria-hidden="true" className="text-slate-300">·</span>
+                            <span className="font-mono-num font-medium text-slate-600">
+                              {notice.displayDate || notice.date}
+                            </span>
+                          </div>
+
+                          <h3 className="mt-2 font-display text-base sm:text-lg font-bold text-slate-900">
+                            {notice.title}
+                          </h3>
+                          <p className="mt-1.5 text-sm leading-relaxed text-slate-600 max-w-3xl">
+                            {notice.content}
+                          </p>
                         </div>
 
                         {isAdmin && (
@@ -776,7 +965,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                             type="button"
                             onClick={() => handleDownloadNoticePdf(notice)}
                             disabled={downloadingNoticeId === notice.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shadow-2xs"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shrink-0 self-start"
                             title="পিডিএফ ডাউনলোড করুন"
                           >
                             <Download className="h-3.5 w-3.5 text-emerald-700" />
@@ -786,20 +975,14 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                           </button>
                         )}
                       </div>
-                      <h3 className="mt-2.5 font-display text-base sm:text-lg font-bold text-slate-900">
-                        {notice.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                        {notice.content}
-                      </p>
-                    </div>
+                    </article>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Live Welfare Projects Section */}
-            <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10">
+            {/* 5. Live Welfare Projects Section */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-10">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-slate-900">
@@ -819,7 +1002,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
               </div>
 
               {homeProjectsList.length > 0 ? (
-                <div className="mt-6 grid gap-5 md:grid-cols-3">
+                <div className="mt-5 grid gap-5 md:grid-cols-3">
                   {homeProjectsList.slice(0, 3).map((project) => (
                     <ProjectCard
                       key={project.id}
@@ -843,7 +1026,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-xs">
+                <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-xs">
                   <p className="font-display text-base font-semibold text-slate-600">
                     শীঘ্রই নতুন প্রকল্প আসছে...
                   </p>
