@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AlAzharWebView" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/emerald_primary</item>
+        <item name="colorPrimaryVariant">@color/emerald_dark</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="android:statusBarColor">@color/emerald_primary</item>
+        <item name="android:windowBackground">@color/surface_bg</item>
+    </style>
+</resources>

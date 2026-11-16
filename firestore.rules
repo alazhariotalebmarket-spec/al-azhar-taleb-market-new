@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidOrganization(data) {
+      return data.organization is string &&
+             data.organization.size() > 0 &&
+             data.organization.size() <= 200 &&
+             data.members is list &&
+             data.transactions is list &&
+             data.notices is list &&
+             data.projects is list;
+    }
+
+    match /organizations/{orgId} {
+      // Public read so any device can view notices, transparency, members, and projects
+      allow get: if isValidId(orgId);
+      allow list: if false;
+      allow create, update: if isValidId(orgId) && isValidOrganization(incoming());
+      allow delete: if false;
+    }
+
+    match /test/connection {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

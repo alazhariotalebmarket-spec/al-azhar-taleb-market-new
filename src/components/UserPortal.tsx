@@ -1,0 +1,1770 @@
+import React, { Suspense, lazy, useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowRight,
+  Bell,
+  Building2,
+  Check,
+  Copy,
+  Download,
+  Droplets,
+  FileText,
+  Lock,
+  Mail,
+  MapPin,
+  Menu,
+  Pencil,
+  Phone,
+  Printer,
+  ReceiptText,
+  Search,
+  UserPlus,
+  X,
+} from 'lucide-react';
+import {
+  DEFAULT_LOGO_URL,
+  DonationRequest,
+  HOME_BANNER_URL,
+  BENGALI_MONTHS,
+  BLOOD_GROUPS,
+  BloodGroup,
+  MemberApplication,
+  Notice,
+  ORG_NAME,
+  ORG_TAGLINE,
+  OrganizationData,
+  Transaction,
+  UserRole,
+} from '../types';
+import { DonutChart } from './DonutChart';
+import { OrgLogo } from './OrgLogo';
+import { PieChart } from './PieChart';
+import { ProjectCard } from './ProjectCard';
+import { ORG_CONTACT, copyTextToClipboard } from '../services/contactConfig';
+import {
+  buildDonorPdfPayload,
+  buildProjectPdfPayload,
+  buildTransactionDonationPdfPayload,
+  PdfPrintPayload,
+} from '../services/donationProjectPdfGenerator';
+
+const AdminEyanotSheet = lazy(() =>
+  import('./AdminEyanotSheet').then((m) => ({ default: m.AdminEyanotSheet }))
+);
+const AboutSection = lazy(() =>
+  import('./AboutSection').then((m) => ({ default: m.AboutSection }))
+);
+const ContactSection = lazy(() =>
+  import('./ContactSection').then((m) => ({ default: m.ContactSection }))
+);
+const DonateSection = lazy(() =>
+  import('./DonateSection').then((m) => ({ default: m.DonateSection }))
+);
+const MemberApplyModal = lazy(() =>
+  import('./MemberApplyModal').then((m) => ({ default: m.MemberApplyModal }))
+);
+const MemberProfileModal = lazy(() =>
+  import('./MemberProfileModal').then((m) => ({ default: m.MemberProfileModal }))
+);
+const MonthlyExpensePage = lazy(() =>
+  import('./MonthlyExpensePage').then((m) => ({ default: m.MonthlyExpensePage }))
+);
+const ReceiptModal = lazy(() =>
+  import('./ReceiptModal').then((m) => ({ default: m.ReceiptModal }))
+);
+const PdfPrintPreviewModal = lazy(() =>
+  import('./PdfPrintPreviewModal').then((m) => ({ default: m.PdfPrintPreviewModal }))
+);
+
+const SectionFallback = (
+  <div className="mx-auto max-w-6xl px-6 py-16 text-center text-sm font-medium text-slate-500">
+    লোড হচ্ছে...
+  </div>
+);
+
+type UserSection =
+  | 'home'
+  | 'projects'
+  | 'members'
+  | 'eyanot'
+  | 'expenses'
+  | 'advisors'
+  | 'finance'
+  | 'notices'
+  | 'contact'
+  | 'about';
+
+interface UserPortalProps {
+  data: OrganizationData;
+  role: UserRole;
+  permissionMessage: string | null;
+  onDismissPermissionMessage: () => void;
+  onSubmitDonation?: (req: Omit<DonationRequest, 'id' | 'submittedAt' | 'status'>) => void;
+  onSubmitApplication?: (app: Omit<MemberApplication, 'id' | 'submittedAt' | 'status'>) => void;
+  onOpenAdmin: () => void;
+  onAdminQuickEdit?: (tab: 'members' | 'advisors' | 'finance' | 'notices' | 'projects' | 'eyanot' | 'expenses') => void;
+}
+
+export const UserPortal: React.FC<UserPortalProps> = ({
+  data,
+  role,
+  permissionMessage,
+  onDismissPermissionMessage,
+  onSubmitDonation,
+  onSubmitApplication,
+  onOpenAdmin,
+  onAdminQuickEdit,
+}) => {
+  const [section, setSection] = useState<UserSection>('home');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [bloodGroupFilter, setBloodGroupFilter] = useState<'all' | BloodGroup>('all');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [financeFilter, setFinanceFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [financeSearch, setFinanceSearch] = useState('');
+  const [financeMonthFilter, setFinanceMonthFilter] = useState<string>('all');
+  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  const [pdfPreviewPayload, setPdfPreviewPayload] = useState<PdfPrintPayload | null>(null);
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [homeCopiedMsg, setHomeCopiedMsg] = useState<string | null>(null);
+
+  const isAdmin = role === 'admin';
+  const activeLogoSrc = data.logoUrl || DEFAULT_LOGO_URL;
+
+  const totalEyanotCollected = useMemo(() => {
+    let sum = 0;
+    data.members.forEach((m) => {
+      const payments = m.eyanotPayments || {};
+      Object.values(payments).forEach((yearObj) => {
+        if (yearObj && typeof yearObj === 'object') {
+          Object.values(yearObj).forEach((amt) => {
+            sum += Number(amt) || 0;
+          });
+        }
+      });
+    });
+    return sum;
+  }, [data.members]);
+
+  const selectedMember = useMemo(
+    () => data.members.find((m) => m.id === selectedMemberId) || null,
+    [data.members, selectedMemberId]
+  );
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const currentYear = String(now.getFullYear());
+    const currentMonth = now.getMonth();
+    const currentMonthName = BENGALI_MONTHS[currentMonth];
+
+    const activeList = (data.members || []).filter((m) => m.status === 'সক্রিয়');
+    const activeMembers = activeList.length;
+    const newMembers = (data.members || []).filter((m) => (m.joinDate || '').startsWith(currentYear)).length;
+
+    const expectedThisMonth = activeList.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
+    const collectedThisMonth = activeList.reduce(
+      (sum, m) => sum + (m.eyanotPayments?.[currentYear]?.[currentMonth] || 0),
+      0
+    );
+    const dueThisMonth = Math.max(0, expectedThisMonth - collectedThisMonth);
+
+    const totalIncome = data.transactions
+      .filter((t) => t.type === 'income')
+      .reduce((s, t) => s + t.amount, 0);
+    const totalExpense = data.transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
+    return {
+      activeMembers,
+      newMembers,
+      totalMembers: data.members.length,
+      totalAdvisors: data.advisors.length,
+      totalIncome,
+      totalExpense,
+      netBalance: totalIncome - totalExpense,
+      currentMonthName,
+      currentYear,
+      expectedThisMonth,
+      collectedThisMonth,
+      dueThisMonth,
+    };
+  }, [data]);
+
+  const orgFinanceSummary = useMemo(
+    () => ({
+      totalIncome: stats.totalIncome,
+      totalExpense: stats.totalExpense,
+      netBalance: stats.netBalance,
+    }),
+    [stats.totalIncome, stats.totalExpense, stats.netBalance]
+  );
+
+  const filteredMembers = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    return data.members.filter((m) => {
+      if (bloodGroupFilter !== 'all' && m.bloodGroup !== bloodGroupFilter) return false;
+      if (!q) return true;
+      return (
+        m.name.toLowerCase().includes(q) ||
+        (m.fatherName || '').toLowerCase().includes(q) ||
+        m.phone.toLowerCase().includes(q) ||
+        (m.bloodGroup || '').toLowerCase().includes(q) ||
+        m.memberCode.toLowerCase().includes(q) ||
+        m.designation.toLowerCase().includes(q) ||
+        m.address.toLowerCase().includes(q)
+      );
+    });
+  }, [data.members, memberSearch, bloodGroupFilter]);
+
+  const memberIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    data.members.forEach((m, idx) => {
+      map.set(m.id, idx + 1);
+    });
+    return map;
+  }, [data.members]);
+
+  const bloodGroupCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    BLOOD_GROUPS.forEach((bg) => {
+      counts[bg] = 0;
+    });
+    data.members.forEach((m) => {
+      if (m.bloodGroup) {
+        counts[m.bloodGroup] = (counts[m.bloodGroup] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [data.members]);
+
+  const financeMonthOptions = useMemo(() => {
+    const months = new Set<string>();
+    data.transactions.forEach((t) => {
+      if (t.date.length >= 7) months.add(t.date.slice(0, 7));
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [data.transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    const q = financeSearch.trim().toLowerCase();
+    return [...data.transactions]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .filter((t) => (financeFilter === 'all' ? true : t.type === financeFilter))
+      .filter((t) => (financeMonthFilter === 'all' ? true : t.date.startsWith(financeMonthFilter)))
+      .filter((t) => {
+        if (!q) return true;
+        return (
+          t.category.toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
+          t.receiptNo.toLowerCase().includes(q)
+        );
+      });
+  }, [data.transactions, financeFilter, financeMonthFilter, financeSearch]);
+
+  const financeCategoryBreakdown = useMemo(() => {
+    const map = new Map<string, { category: string; type: 'income' | 'expense'; total: number }>();
+    filteredTransactions.forEach((t) => {
+      const key = `${t.type}::${t.category}`;
+      const existing = map.get(key);
+      if (existing) existing.total += t.amount;
+      else map.set(key, { category: t.category, type: t.type, total: t.amount });
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filteredTransactions]);
+
+  const handleDownloadFinanceReport = async (format: 'pdf' | 'xlsx') => {
+    const { generateBackupBundle } = await import('../services/backupGenerators');
+    const bundle = await generateBackupBundle(data);
+    const target = format === 'pdf' ? bundle.financePdf : bundle.financeExcel;
+    const url = URL.createObjectURL(target.blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = target.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const [downloadingNoticeId, setDownloadingNoticeId] = useState<string | null>(null);
+
+  const handleDownloadNoticePdf = async (notice: Notice) => {
+    try {
+      setDownloadingNoticeId(notice.id);
+      const { generateNoticePdfBlob } = await import('../services/noticePdfGenerator');
+      const { blob, fileName } = await generateNoticePdfBlob(notice, data.logoUrl);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to generate notice PDF:', err);
+    } finally {
+      setDownloadingNoticeId(null);
+    }
+  };
+
+  const sortedNotices = useMemo(() => {
+    return [...(data.notices || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }, [data.notices]);
+
+  const projectsList = data.projects || [];
+
+  const homeProjectsList = useMemo(() => {
+    const hiddenIds = new Set(['p-1', 'p-2', 'p-3']);
+    const hiddenTitles = new Set([
+      'শীতবস্ত্র ও কম্বল বিতরণ প্রকল্প ২০২৬',
+      'এতিম ও মেধাবী শিক্ষার্থী মাসিক বৃত্তি',
+      'জরুরি খাদ্য ও চিকিৎসা সহায়তা তহবিল',
+      'জরুরী খাদ্য ও চিকিৎসা সহায়তা তহবিল',
+    ]);
+    return projectsList.filter(
+      (p) => !hiddenIds.has(p.id) && !hiddenTitles.has(p.title.trim())
+    );
+  }, [projectsList]);
+
+  const projectFinanceStats = useMemo(() => {
+    let totalProjectIncome = 0;
+    let totalProjectExpense = 0;
+    let totalProjectDonors = 0;
+
+    homeProjectsList.forEach((p) => {
+      const pIncome =
+        p.incomeList && p.incomeList.length > 0
+          ? p.incomeList.reduce((s, item) => s + (Number(item.amount) || 0), 0)
+          : Number(p.raisedAmount) || 0;
+      const pExpense =
+        p.expenseList && p.expenseList.length > 0
+          ? p.expenseList.reduce((s, item) => s + (Number(item.amount) || 0), 0)
+          : 0;
+
+      totalProjectIncome += pIncome;
+      totalProjectExpense += pExpense;
+      totalProjectDonors += p.incomeList?.length || 0;
+    });
+
+    return {
+      totalProjectIncome,
+      totalProjectExpense,
+      totalProjectDonors,
+      projectCount: homeProjectsList.length,
+    };
+  }, [homeProjectsList]);
+
+  const navItems: { id: UserSection; label: string }[] = [
+    { id: 'home', label: 'হোম' },
+    { id: 'projects', label: 'প্রকল্প' },
+    { id: 'members', label: 'সদস্যবৃন্দ' },
+    { id: 'eyanot', label: 'এয়ানত শীট' },
+    { id: 'expenses', label: 'মাসিক ব্যয়' },
+    { id: 'advisors', label: 'উপদেষ্টা' },
+    { id: 'finance', label: 'আয়-ব্যয়' },
+    { id: 'notices', label: 'নোটিশ' },
+    { id: 'about', label: 'আমাদের সম্পর্কে' },
+    { id: 'contact', label: 'যোগাযোগ' },
+  ];
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+      {/* Strict 3-Zone Top Bar Contract */}
+      <header className="no-print sticky top-0 z-35 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
+          {/* Zone 1: Single-line Brand Wordmark */}
+          <button
+            type="button"
+            onClick={() => {
+              setSection('home');
+              setMobileMenuOpen(false);
+            }}
+            className="flex items-center gap-2.5 text-left whitespace-nowrap shrink-0"
+          >
+            <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />
+            <span className="font-display text-base sm:text-lg font-bold tracking-tight text-slate-900">
+              {ORG_NAME}
+            </span>
+          </button>
+
+          {/* Zone 2: Desktop Navigation links */}
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-5 text-sm font-medium text-slate-600">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSection(item.id)}
+                className={`whitespace-nowrap shrink-0 pb-0.5 transition-colors ${
+                  section === item.id
+                    ? 'border-b-2 border-emerald-800 font-semibold text-emerald-900'
+                    : 'hover:text-slate-900'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Zone 3: CTA & Mobile Hamburger Toggle */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{isAdmin ? 'অ্যাডমিন প্যানেল' : 'অ্যাডমিন লগইন'}</span>
+              <span className="inline sm:hidden">{isAdmin ? 'প্যানেল' : 'লগইন'}</span>
+            </button>
+
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="inline-flex lg:hidden items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-700 hover:bg-slate-100 transition-colors"
+              aria-label="মেনু খুলুন"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5 text-emerald-800" /> : <Menu className="h-5 w-5 text-emerald-800" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Hamburger Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 shadow-xl">
+            <nav className="grid grid-cols-1 gap-1.5">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSection(item.id);
+                    setMobileMenuOpen(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
+                    section === item.id
+                      ? 'bg-emerald-50 font-semibold text-emerald-900 border border-emerald-200'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  <ArrowRight className={`h-4 w-4 ${section === item.id ? 'text-emerald-800' : 'text-slate-400'}`} />
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
+      </header>
+
+      {/* Permission Guard Message (only shown if non-admin tries to trigger an edit/admin action) */}
+      {permissionMessage && (
+        <div className="mx-auto w-full max-w-6xl px-6 pt-5">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
+              <span className="font-semibold">{permissionMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={onDismissPermissionMessage}
+              className="rounded p-1 text-amber-700 hover:bg-amber-100"
+              aria-label="বন্ধ করুন"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1">
+        {section === 'home' && (
+          <div>
+            {/* Home Page Banner */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6 sm:pt-8">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-emerald-950 shadow-sm h-auto min-h-[560px] sm:min-h-0 sm:h-[430px] flex flex-col justify-center">
+                <img
+                  src={HOME_BANNER_URL}
+                  alt={ORG_NAME}
+                  referrerPolicy="no-referrer"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-950/40" />
+                <div className="relative z-10 flex flex-col items-center justify-center p-6 pt-[90px] pb-[40px] text-center sm:p-10">
+                  <div className="flex flex-col items-center gap-3">
+                    <OrgLogo
+                      src={activeLogoSrc}
+                      alt={ORG_NAME}
+                      variant="standard"
+                      className="!w-[64px] !h-[64px] sm:!w-[76px] sm:!h-[76px] md:!w-24 md:!h-24 border-2 border-white/70 shadow-md"
+                    />
+                    <div>
+                      <p className="text-[11px] sm:text-sm font-semibold tracking-wide text-emerald-200">
+                        {ORG_TAGLINE}
+                      </p>
+                      <h1 className="mt-1 font-display text-2xl sm:text-5xl font-bold tracking-tight text-white text-balance">
+                        {ORG_NAME}
+                      </h1>
+                    </div>
+                  </div>
+                  <p className="mt-2.5 max-w-xl text-xs sm:text-base leading-relaxed text-slate-200 px-1 sm:px-0">
+                    মানবকল্যাণ, দ্বীনি শিক্ষা প্রসার, এতিম সহায়তা ও স্বচ্ছ সামাজিক সেবায় নিবেদিত একটি অরাজনৈতিক ও অলাভজনক ইসলামী কল্যাণমূলক সংগঠন।
+                  </p>
+                  <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setSection('finance')}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-600 shadow-xs whitespace-nowrap"
+                    >
+                      আর্থিক স্বচ্ছতা দেখুন
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    {onSubmitApplication && (
+                      <button
+                        type="button"
+                        onClick={() => setApplyModalOpen(true)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/25 shadow-xs whitespace-nowrap"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        সদস্য হওয়ার আবেদন
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSection('about')}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20 shadow-xs whitespace-nowrap"
+                    >
+                      আমাদের সম্পর্কে
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Two Side-by-Side Cards: Pink Donation Card & Income-Expense Donut Chart Card */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10">
+              <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+                {/* 1. Left Side: Pink Donation Card */}
+                <div className="flex flex-col justify-between rounded-2xl border border-pink-200 bg-pink-50/70 p-6 sm:p-8 shadow-xs">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E2136E]/10 px-3 py-1 text-xs font-bold text-[#E2136E]">
+                        বিকাশ পার্সোনাল
+                      </span>
+                      <Phone className="h-5 w-5 text-[#E2136E]" />
+                    </div>
+
+                    <h2 className="mt-4 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
+                      আল্লাহর রাস্তায় দান করুন
+                    </h2>
+                    <p className="mt-1.5 text-xs sm:text-sm font-medium text-slate-600">
+                      বিকাশ পার্সোনাল নাম্বার
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap items-baseline gap-3">
+                      <span className="font-mono-num text-2xl sm:text-3xl font-black tracking-wider text-[#E2136E]">
+                        +8801810893388
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      <a
+                        href={ORG_CONTACT.phoneTelHref}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-900 shadow-xs whitespace-nowrap"
+                      >
+                        <Phone className="h-4 w-4" />
+                        কল করুন
+                      </a>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = await copyTextToClipboard('+8801810893388');
+                          if (ok) {
+                            setHomeCopiedMsg('নাম্বার কপি হয়েছে: +8801810893388');
+                            setTimeout(() => setHomeCopiedMsg(null), 3000);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#E2136E] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-[#c50f5e] shadow-xs whitespace-nowrap"
+                      >
+                        <Copy className="h-4 w-4" />
+                        নাম্বার কপি করুন
+                      </button>
+                    </div>
+
+                    {homeCopiedMsg && (
+                      <div className="flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-emerald-800 border border-pink-200 shadow-xs">
+                        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span className="font-mono-num">{homeCopiedMsg}</span>
+                      </div>
+                    )}
+
+                    <p className="border-t border-pink-200/80 pt-3 text-xs font-medium text-slate-600">
+                      দান পাঠিয়ে আমাদের জানান, জাযাকাল্লাহু খাইরান
+                    </p>
+                  </div>
+                </div>
+
+                {/* 2. Right Side: Income, Expense & Eyanot Donut Chart Card */}
+                {(() => {
+                  const incomeVal = stats.totalIncome;
+                  const expenseVal = stats.totalExpense;
+                  const eyanotVal = totalEyanotCollected;
+                  const chartSegments = [
+                    {
+                      key: 'income',
+                      label: 'মোট আয়',
+                      value: incomeVal,
+                      formattedValue: `৳ ${incomeVal.toLocaleString('en-US')}`,
+                      color: '#16a34a',
+                    },
+                    {
+                      key: 'expense',
+                      label: 'মোট ব্যয়',
+                      value: expenseVal,
+                      formattedValue: `৳ ${expenseVal.toLocaleString('en-US')}`,
+                      color: '#dc2626',
+                    },
+                    {
+                      key: 'eyanot',
+                      label: 'মাসিক এয়ানত',
+                      value: eyanotVal,
+                      formattedValue: `৳ ${eyanotVal.toLocaleString('en-US')}`,
+                      color: '#2563eb',
+                    },
+                  ];
+
+                  return (
+                    <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <h2 className="font-display text-lg sm:text-xl font-bold text-slate-900">
+                            আর্থিক ও এয়ানত সারসংক্ষেপ
+                          </h2>
+                          <button
+                            type="button"
+                            onClick={() => setSection('finance')}
+                            className="text-xs sm:text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                          >
+                            বিস্তারিত হিসাব দেখুন →
+                          </button>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {ORG_NAME} · রিয়েল-টাইম আয়, ব্যয় ও এয়ানত গ্রাফ
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex flex-col sm:flex-row items-center sm:items-stretch justify-between gap-4">
+                        <div className="flex-1 min-w-0 w-full flex items-center justify-center">
+                          <DonutChart
+                            centerLabel="বর্তমান তহবিল"
+                            centerValue={`৳ ${stats.netBalance.toLocaleString('en-US')}`}
+                            segments={chartSegments}
+                            size="sm"
+                            borderless={true}
+                          />
+                        </div>
+
+                        {/* Small Separate Pie Chart: Donations & Other Projects Income vs Expense */}
+                        <div className="w-full sm:w-[196px] shrink-0 rounded-xl border border-slate-200/90 bg-slate-50/75 p-3 flex flex-col items-center justify-between gap-2.5">
+                          <div className="text-center">
+                            <h3 className="font-display text-xs font-bold leading-snug text-slate-900">
+                              দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয়
+                            </h3>
+                            <p className="mt-0.5 text-[10px] text-slate-500">
+                              {projectFinanceStats.totalProjectDonors > 0
+                                ? `${projectFinanceStats.totalProjectDonors} জনের দান · প্রকল্প হিসাব`
+                                : 'প্রকল্প ও দান হিসাব'}
+                            </p>
+                          </div>
+
+                          <PieChart
+                            sizePx={92}
+                            ariaLabel="দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয় পাই চার্ট"
+                            segments={[
+                              {
+                                key: 'project-income',
+                                label: 'প্রকল্প আয়',
+                                value: projectFinanceStats.totalProjectIncome,
+                                formattedValue: `৳ ${projectFinanceStats.totalProjectIncome.toLocaleString('en-US')}`,
+                                color: '#16a34a',
+                              },
+                              {
+                                key: 'project-expense',
+                                label: 'প্রকল্প ব্যয়',
+                                value: projectFinanceStats.totalProjectExpense,
+                                formattedValue: `৳ ${projectFinanceStats.totalProjectExpense.toLocaleString('en-US')}`,
+                                color: '#dc2626',
+                              },
+                            ]}
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setSection('projects')}
+                            className="text-[11px] font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                          >
+                            প্রকল্প বিস্তারিত দেখুন →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </section>
+
+            {/* Latest Notices Preview */}
+            {sortedNotices.length > 0 && (
+              <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="font-display text-2xl font-bold text-slate-900">সাম্প্রতিক নোটিশ</h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {ORG_NAME}-এর সর্বশেষ বিজ্ঞপ্তি ও কর্মসূচি
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSection('notices')}
+                    className="text-sm font-semibold text-emerald-800 hover:underline self-start sm:self-auto"
+                  >
+                    সব নোটিশ দেখুন →
+                  </button>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  {sortedNotices.slice(0, 3).map((notice) => (
+                    <div
+                      key={notice.id}
+                      className={`rounded-2xl border p-5 sm:p-6 shadow-xs ${
+                        notice.important
+                          ? 'border-red-200 bg-red-50/40'
+                          : 'border-slate-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {notice.important && (
+                            <span className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white">
+                              জরুরী
+                            </span>
+                          )}
+                          <span
+                            className={
+                              notice.important
+                                ? 'font-semibold text-red-700'
+                                : 'font-semibold text-emerald-800'
+                            }
+                          >
+                            {notice.category}
+                          </span>
+                          <span className="text-slate-300">·</span>
+                          <span className="font-mono-num font-medium text-slate-700">
+                            {notice.displayDate || notice.date}
+                          </span>
+                        </div>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadNoticePdf(notice)}
+                            disabled={downloadingNoticeId === notice.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shadow-2xs"
+                            title="পিডিএফ ডাউনলোড করুন"
+                          >
+                            <Download className="h-3.5 w-3.5 text-emerald-700" />
+                            <span>
+                              {downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড করুন'}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                      <h3 className="mt-2.5 font-display text-base sm:text-lg font-bold text-slate-900">
+                        {notice.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                        {notice.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Live Welfare Projects Section */}
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="font-display text-2xl font-bold text-slate-900">
+                    আমাদের প্রধান সেবামূলক প্রকল্প ও কার্যক্রম
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {ORG_NAME}-এর চলমান কল্যাণ ও শিক্ষামূলক প্রকল্পসমূহ
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSection('projects')}
+                  className="text-sm font-semibold text-emerald-800 hover:underline self-start sm:self-auto"
+                >
+                  সব প্রকল্প দেখুন →
+                </button>
+              </div>
+
+              {homeProjectsList.length > 0 ? (
+                <div className="mt-6 grid gap-5 md:grid-cols-3">
+                  {homeProjectsList.slice(0, 3).map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      variant="home"
+                      canPrintPdf={isAdmin}
+                      onPrintProject={
+                        isAdmin
+                          ? (p) => setPdfPreviewPayload(buildProjectPdfPayload(p, orgFinanceSummary))
+                          : undefined
+                      }
+                      onPrintDonor={
+                        isAdmin
+                          ? (p, donor, idx) =>
+                              setPdfPreviewPayload(
+                                buildDonorPdfPayload(p, donor, idx, orgFinanceSummary)
+                              )
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-xs">
+                  <p className="font-display text-base font-semibold text-slate-600">
+                    শীঘ্রই নতুন প্রকল্প আসছে...
+                  </p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {section === 'projects' && (
+          <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10 space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-slate-900">
+                  কল্যাণ প্রকল্প ও কর্মসূচি
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {ORG_NAME}-এর চলমান, সম্পন্ন ও পরিকল্পিত মানবিক কার্যক্রম
+                </p>
+              </div>
+              {isAdmin && onAdminQuickEdit && (
+                <button
+                  type="button"
+                  onClick={() => onAdminQuickEdit('projects')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap self-start"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  প্রকল্প সম্পাদনা
+                </button>
+              )}
+            </div>
+
+            {projectsList.length > 0 ? (
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {projectsList.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    variant="page"
+                    canPrintPdf={isAdmin}
+                    onPrintProject={
+                      isAdmin
+                        ? (p) => setPdfPreviewPayload(buildProjectPdfPayload(p, orgFinanceSummary))
+                        : undefined
+                    }
+                    onPrintDonor={
+                      isAdmin
+                        ? (p, donor, idx) =>
+                            setPdfPreviewPayload(
+                              buildDonorPdfPayload(p, donor, idx, orgFinanceSummary)
+                            )
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+                <p className="font-display text-base sm:text-lg font-medium text-slate-700 leading-relaxed">
+                  বর্তমানে আমাদের হাতে কোনো চলমান প্রকল্প নেই। নতুন প্রকল্প শুরু হলে এখানে জানানো হবে।
+                </p>
+              </div>
+            )}
+
+            <Suspense fallback={SectionFallback}>
+              <DonateSection onSubmitDonation={onSubmitDonation} />
+            </Suspense>
+          </section>
+        )}
+
+        {section === 'members' && (
+          <section className="mx-auto max-w-6xl px-6 py-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-slate-900">
+                  সদস্যবৃন্দ ও জরুরি রক্তদান ডিরেক্টরি
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {ORG_NAME} · মোট সদস্য {data.members.length} জন
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full sm:w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="নাম, মোবাইল বা ব্লাড গ্রুপ খুঁজুন..."
+                    className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-700"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSection('eyanot')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                >
+                  মাসিক এয়ানত শীট
+                </button>
+
+                {onSubmitApplication && (
+                  <button
+                    type="button"
+                    onClick={() => setApplyModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-white px-3.5 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 whitespace-nowrap"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    সদস্য হওয়ার আবেদন
+                  </button>
+                )}
+
+                {isAdmin && onAdminQuickEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onAdminQuickEdit('members')}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    সদস্য সম্পাদনা
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Interactive Emergency Blood Donor Quick Filter Bar */}
+            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  <Droplets className="h-4 w-4 text-red-600" />
+                  <span>জরুরি রক্তের প্রয়োজনে ব্লাড গ্রুপ অনুযায়ী খুঁজুন ও সরাসরি কল করুন</span>
+                </div>
+                <span className="font-mono-num text-xs text-slate-500">
+                  ফলাফল: {filteredMembers.length} জন
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBloodGroupFilter('all')}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+                    bloodGroupFilter === 'all'
+                      ? 'border-emerald-800 bg-emerald-800 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  সকল ({data.members.length})
+                </button>
+                {BLOOD_GROUPS.map((bg) => (
+                  <button
+                    key={bg}
+                    type="button"
+                    onClick={() => setBloodGroupFilter(bg)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-mono-num font-semibold transition-colors whitespace-nowrap ${
+                      bloodGroupFilter === bg
+                        ? 'border-red-700 bg-red-700 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-red-300 hover:text-red-700'
+                    }`}
+                  >
+                    {bg} ({bloodGroupCounts[bg] || 0})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Small Round Donut Chart on Members Page */}
+            <div className="mt-6">
+              <DonutChart
+                size="sm"
+                title="সদস্য ও উপদেষ্টা পরিসংখ্যান"
+                subtitle="মোট সদস্য, নতুন সদস্য ও উপদেষ্টা পরিষদের অনুপাত"
+                centerLabel="মোট সদস্য"
+                centerValue={`${stats.totalMembers} জন`}
+                segments={[
+                  {
+                    key: 'total-members',
+                    label: 'মোট সদস্য',
+                    value: stats.totalMembers,
+                    formattedValue: `${stats.totalMembers} জন`,
+                    color: '#16a34a',
+                  },
+                  {
+                    key: 'new-members',
+                    label: 'নতুন সদস্য',
+                    value: stats.newMembers,
+                    formattedValue: `${stats.newMembers} জন`,
+                    color: '#2563eb',
+                  },
+                  {
+                    key: 'advisors',
+                    label: 'উপদেষ্টা',
+                    value: stats.totalAdvisors,
+                    formattedValue: `${stats.totalAdvisors} জন`,
+                    color: '#d97706',
+                  },
+                ]}
+              />
+            </div>
+
+            {/* Member Cards Grid with Round Photo/Logo, Father Name, Blood Group, Call & Profile View */}
+            {filteredMembers.length > 0 && (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredMembers.map((member, idx) => {
+                  const serialNo = memberIndexMap.get(member.id) || idx + 1;
+                  return (
+                  <div
+                    key={`card-${member.id}`}
+                    className="rounded-xl border border-slate-200 bg-white p-5 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <OrgLogo
+                            src={member.photoUrl || activeLogoSrc}
+                            alt={member.name}
+                            variant="standard"
+                            isPhoto={Boolean(member.photoUrl)}
+                          />
+                          <div className="min-w-0">
+                            <h3 className="truncate font-display text-base font-bold text-slate-900">
+                              <span className="mr-1.5 font-mono-num text-xs font-bold text-emerald-800">
+                                #{serialNo}
+                              </span>
+                              {member.name}
+                            </h3>
+                            <p className="truncate text-xs text-slate-600">
+                              পিতা: {member.fatherName || 'উল্লেখ নেই'}
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {member.designation}
+                              {member.bloodGroup ? ` · রক্ত: ${member.bloodGroup}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-xs text-slate-600">
+                        <p className="truncate">{member.address}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono-num">
+                            মাসিক এয়ানত: <strong className="text-slate-900">৳ {member.monthlyFee.toLocaleString('en-US')}</strong>
+                          </span>
+                          <span
+                            className={`font-semibold shrink-0 ${
+                              member.status === 'সক্রিয়' ? 'text-emerald-700' : 'text-slate-500'
+                            }`}
+                          >
+                            {member.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                      {member.phone ? (
+                        <a
+                          href={`tel:${member.phone}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 whitespace-nowrap"
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                          {member.phone}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">মোবাইল নেই</span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMemberId(member.id)}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                      >
+                        প্রোফাইল ও এয়ানত
+                      </button>
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
+                      <th className="px-4 py-3.5 text-center whitespace-nowrap">ক্রম</th>
+                      <th className="px-6 py-3.5">সদস্য ও পিতার নাম</th>
+                      <th className="px-6 py-3.5">সদস্য পদ</th>
+                      <th className="px-6 py-3.5">ব্লাড গ্রুপ</th>
+                      <th className="px-6 py-3.5">মোবাইল</th>
+                      <th className="px-6 py-3.5 text-right">মাসিক এয়ানত</th>
+                      <th className="px-6 py-3.5 text-right">বিস্তারিত</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredMembers.map((member, idx) => (
+                      <tr key={member.id} className="hover:bg-slate-50/70">
+                        <td className="px-4 py-3.5 text-center font-mono-num text-xs font-bold text-slate-600 whitespace-nowrap">
+                          {memberIndexMap.get(member.id) || idx + 1}
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <OrgLogo
+                              src={member.photoUrl || activeLogoSrc}
+                              alt={member.name}
+                              variant="compact"
+                              isPhoto={Boolean(member.photoUrl)}
+                            />
+                            <div>
+                              <div className="font-medium text-slate-900">{member.name}</div>
+                              <div className="text-xs text-slate-500">
+                                পিতা: {member.fatherName || 'উল্লেখ নেই'} · {member.address}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5 text-slate-700">{member.designation}</td>
+                        <td className="px-6 py-3.5 font-mono-num font-semibold text-red-700 whitespace-nowrap">
+                          {member.bloodGroup || '—'}
+                        </td>
+                        <td className="px-6 py-3.5 font-mono-num text-xs text-slate-700 whitespace-nowrap">
+                          {member.phone ? (
+                            <a
+                              href={`tel:${member.phone}`}
+                              className="inline-flex items-center gap-1 text-emerald-800 hover:underline"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {member.phone}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-6 py-3.5 text-right font-mono-num font-semibold text-slate-900 whitespace-nowrap">
+                          ৳ {member.monthlyFee.toLocaleString('en-US')}
+                        </td>
+                        <td className="px-6 py-3.5 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMemberId(member.id)}
+                            className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            প্রোফাইল দেখুন
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredMembers.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
+                          {data.members.length === 0
+                            ? 'কোনো সদস্য যোগ করা হয়নি।'
+                            : 'কোনো সদস্য পাওয়া যায়নি।'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {section === 'eyanot' && (
+          <section className="mx-auto max-w-6xl px-6 py-10 space-y-5">
+            {isAdmin && onAdminQuickEdit && (
+              <div className="no-print flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onAdminQuickEdit('eyanot')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  এয়ানত আদায় ও সম্পাদনা (অ্যাডমিন)
+                </button>
+              </div>
+            )}
+            <Suspense fallback={SectionFallback}>
+              <AdminEyanotSheet
+                members={data.members}
+                logoUrl={data.logoUrl}
+                isAdmin={false}
+              />
+            </Suspense>
+          </section>
+        )}
+
+        {section === 'expenses' && (
+          <section className="mx-auto max-w-6xl px-6 py-10 space-y-5">
+            {isAdmin && onAdminQuickEdit && (
+              <div className="no-print flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onAdminQuickEdit('expenses')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  ব্যয় যোগ ও সম্পাদনা (অ্যাডমিন)
+                </button>
+              </div>
+            )}
+            <Suspense fallback={SectionFallback}>
+              <MonthlyExpensePage
+                transactions={data.transactions}
+                isAdmin={false}
+                onViewReceipt={(tx) => setReceiptTx(tx)}
+              />
+            </Suspense>
+          </section>
+        )}
+
+        {section === 'advisors' && (
+          <section className="mx-auto max-w-6xl px-6 py-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-slate-900">উপদেষ্টা পরিষদ</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {ORG_NAME}-এর দিকনির্দেশনাকারী সম্মানিত উপদেষ্টামণ্ডলী
+                </p>
+              </div>
+              {isAdmin && onAdminQuickEdit && (
+                <button
+                  type="button"
+                  onClick={() => onAdminQuickEdit('advisors')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap self-start"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  উপদেষ্টা সম্পাদনা
+                </button>
+              )}
+            </div>
+
+            {data.advisors.length > 0 ? (
+              <div className="mt-6 grid gap-5 md:grid-cols-3">
+                {data.advisors.map((advisor) => (
+                  <div key={advisor.id} className="rounded-xl border border-slate-200 bg-white p-6">
+                    <p className="text-xs font-semibold text-emerald-800">{advisor.title}</p>
+                    <h2 className="mt-2 font-display text-lg font-bold text-slate-900">
+                      {advisor.name}
+                    </h2>
+                    <p className="mt-1.5 flex items-start gap-2 text-sm text-slate-600">
+                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                      <span>{advisor.institution}</span>
+                    </p>
+                    {advisor.note && (
+                      <p className="mt-3 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-500">
+                        {advisor.note}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 rounded-xl border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">
+                কোনো উপদেষ্টা যোগ করা হয়নি।
+              </div>
+            )}
+          </section>
+        )}
+
+        {section === 'finance' && (
+          <section className="mx-auto max-w-6xl px-6 py-10 space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-slate-900">
+                  আয় ও ব্যয়ের স্বচ্ছ হিসাব
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {ORG_NAME} · মোট আয় ৳ {stats.totalIncome.toLocaleString('en-US')} · মোট ব্যয় ৳{' '}
+                  {stats.totalExpense.toLocaleString('en-US')} · তহবিল স্থিতি ৳{' '}
+                  {stats.netBalance.toLocaleString('en-US')}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSection('expenses')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                >
+                  মাসিক ব্যয় পেজ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadFinanceReport('pdf')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  PDF রিপোর্ট
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadFinanceReport('xlsx')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Excel রিপোর্ট
+                </button>
+                {isAdmin && onAdminQuickEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onAdminQuickEdit('finance')}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    আয়-ব্যয় সম্পাদনা
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Search, Month & Type Filters */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-3 flex-1">
+                <div className="relative w-full sm:max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={financeSearch}
+                    onChange={(e) => setFinanceSearch(e.target.value)}
+                    placeholder="খাত, বিবরণ বা রসিদ নং খুঁজুন..."
+                    className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-700"
+                  />
+                </div>
+
+                <select
+                  aria-label="আর্থিক মাস ফিল্টার"
+                  value={financeMonthFilter}
+                  onChange={(e) => setFinanceMonthFilter(e.target.value)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono-num text-slate-800 outline-none focus:border-emerald-700"
+                >
+                  <option value="all">সকল মাস</option>
+                  {financeMonthOptions.map((ym) => (
+                    <option key={ym} value={ym}>
+                      {ym}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 self-start">
+                {(
+                  [
+                    { id: 'all', label: 'সকল' },
+                    { id: 'income', label: 'আয়' },
+                    { id: 'expense', label: 'ব্যয়' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFinanceFilter(tab.id)}
+                    className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+                      financeFilter === tab.id
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category Breakdown Strip */}
+            {financeCategoryBreakdown.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {financeCategoryBreakdown.slice(0, 4).map((item) => (
+                  <div
+                    key={`${item.type}-${item.category}`}
+                    className="rounded-xl border border-slate-200 bg-white p-4"
+                  >
+                    <p className="text-xs text-slate-500 truncate">
+                      {item.type === 'income' ? 'আয়' : 'ব্যয়'} · {item.category}
+                    </p>
+                    <p
+                      className={`mt-1 font-mono-num text-lg font-bold ${
+                        item.type === 'income' ? 'text-emerald-700' : 'text-red-700'
+                      }`}
+                    >
+                      ৳ {item.total.toLocaleString('en-US')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
+                      <th className="px-6 py-3.5">তারিখ</th>
+                      <th className="px-6 py-3.5">রসিদ নং</th>
+                      <th className="px-6 py-3.5">ধরন</th>
+                      <th className="px-6 py-3.5">খাত ও বিবরণ</th>
+                      <th className="px-6 py-3.5 text-right">পরিমাণ (৳)</th>
+                      <th className="px-6 py-3.5 text-right">রসিদ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-slate-50/70">
+                        <td className="px-6 py-3.5 font-mono-num text-xs text-slate-600 whitespace-nowrap">
+                          {tx.date}
+                        </td>
+                        <td className="px-6 py-3.5 font-mono-num text-xs font-medium text-slate-700 whitespace-nowrap">
+                          {tx.receiptNo}
+                        </td>
+                        <td
+                          className={`px-6 py-3.5 text-xs font-semibold whitespace-nowrap ${
+                            tx.type === 'income' ? 'text-emerald-700' : 'text-red-700'
+                          }`}
+                        >
+                          {tx.type === 'income' ? 'আয়' : 'ব্যয়'}
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="font-medium text-slate-900">{tx.category}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                            <span>{tx.description}</span>
+                            {isAdmin && tx.type === 'income' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPdfPreviewPayload(
+                                    buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                  )
+                                }
+                                className="no-print inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100"
+                                title="দাতার PDF / প্রিন্ট"
+                              >
+                                <FileText className="h-3 w-3 text-emerald-700" />
+                                <span>PDF</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          className={`px-6 py-3.5 text-right font-mono-num font-semibold whitespace-nowrap ${
+                            tx.type === 'income' ? 'text-emerald-700' : 'text-red-700'
+                          }`}
+                        >
+                          {tx.type === 'income' ? '+' : '-'} ৳ {tx.amount.toLocaleString('en-US')}
+                        </td>
+                        <td className="px-6 py-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPdfPreviewPayload(
+                                    buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                  )
+                                }
+                                className="no-print inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                                title="PDF / প্রিন্ট করুন"
+                              >
+                                <Printer className="h-3.5 w-3.5 text-emerald-700" />
+                                PDF / প্রিন্ট
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setReceiptTx(tx)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                            >
+                              <ReceiptText className="h-3.5 w-3.5 text-emerald-700" />
+                              রসিদ
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredTransactions.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                          {data.transactions.length === 0
+                            ? 'কোনো আর্থিক লেনদেন যোগ করা হয়নি।'
+                            : 'কোনো লেনদেনের তথ্য পাওয়া যায়নি।'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {section === 'notices' && (
+          <section className="mx-auto max-w-5xl px-6 py-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-slate-900">নোটিশ বোর্ড</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {ORG_NAME}-এর সকল প্রাতিষ্ঠানিক ঘোষণা ও বিজ্ঞপ্তি
+                </p>
+              </div>
+              {isAdmin && onAdminQuickEdit && (
+                <button
+                  type="button"
+                  onClick={() => onAdminQuickEdit('notices')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-900 whitespace-nowrap self-start"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  নোটিশ সম্পাদনা
+                </button>
+              )}
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {sortedNotices.map((notice) => (
+                <article
+                  key={notice.id}
+                  className={`rounded-xl border p-6 ${
+                    notice.important
+                      ? 'border-red-200 bg-red-50/40'
+                      : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {notice.important ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white">
+                          জরুরী
+                        </span>
+                      ) : (
+                        <Bell className="h-3.5 w-3.5 text-emerald-700" />
+                      )}
+                      <span
+                        className={
+                          notice.important ? 'font-semibold text-red-700' : 'font-medium text-emerald-800'
+                        }
+                      >
+                        {notice.category}
+                      </span>
+                      <span className="text-slate-300">·</span>
+                      <span className="font-mono-num font-medium text-slate-700">
+                        {notice.displayDate || notice.date}
+                      </span>
+                    </div>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadNoticePdf(notice)}
+                        disabled={downloadingNoticeId === notice.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shadow-2xs"
+                        title="পিডিএফ ডাউনলোড করুন"
+                      >
+                        <Download className="h-3.5 w-3.5 text-emerald-700" />
+                        <span>
+                          {downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড করুন'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  <h2 className="mt-2 font-display text-lg font-bold text-slate-900">
+                    {notice.title}
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{notice.content}</p>
+                </article>
+              ))}
+              {sortedNotices.length === 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500">
+                  কোনো নোটিশ প্রকাশিত হয়নি।
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {section === 'contact' && (
+          <section className="mx-auto max-w-5xl px-6 py-10 space-y-6">
+            <div>
+              <h1 className="font-display text-2xl font-bold text-slate-900">যোগাযোগ</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                {ORG_NAME}-এর কার্যালয়ের ঠিকানা, ফোন, বিকাশ ও ইমেইল তথ্য
+              </p>
+            </div>
+            <Suspense fallback={SectionFallback}>
+              <ContactSection />
+              <DonateSection onSubmitDonation={onSubmitDonation} />
+            </Suspense>
+          </section>
+        )}
+
+        {section === 'about' && (
+          <Suspense fallback={SectionFallback}>
+            <AboutSection
+              logoUrl={data.logoUrl}
+              onNavigateHome={() => setSection('home')}
+            />
+          </Suspense>
+        )}
+      </main>
+
+      <footer className="no-print border-t border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 md:items-start">
+            <div className="flex items-center gap-3">
+              <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />
+              <div>
+                <p className="font-display text-sm font-bold text-slate-900">{ORG_NAME}</p>
+                <p className="text-xs text-slate-500">{ORG_TAGLINE}</p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-xs text-slate-600 md:text-right">
+              <p className="flex items-start gap-2 md:justify-end">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-800" />
+                <span>
+                  {ORG_CONTACT.addressLine1}, {ORG_CONTACT.addressLine2}
+                </span>
+              </p>
+              <p className="flex items-center gap-2 md:justify-end">
+                <Phone className="h-3.5 w-3.5 shrink-0 text-emerald-800" />
+                <a
+                  href={ORG_CONTACT.phoneTelHref}
+                  className="font-mono-num font-semibold text-slate-800 hover:text-emerald-800 hover:underline"
+                >
+                  {ORG_CONTACT.phoneDisplay}
+                </a>
+                <span className="text-slate-400">· বিকাশ (পার্সোনাল)</span>
+              </p>
+              <p className="flex items-center gap-2 md:justify-end">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-emerald-800" />
+                <a
+                  href={ORG_CONTACT.gmailComposeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono-num text-slate-700 hover:text-emerald-800 hover:underline"
+                >
+                  {ORG_CONTACT.email}
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-5 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-5">
+              <button type="button" onClick={() => setSection('home')} className="hover:text-slate-900">
+                হোম
+              </button>
+              <button type="button" onClick={() => setSection('projects')} className="hover:text-slate-900">
+                প্রকল্প
+              </button>
+              <button type="button" onClick={() => setSection('members')} className="hover:text-slate-900">
+                সদস্যবৃন্দ
+              </button>
+              <button type="button" onClick={() => setSection('eyanot')} className="hover:text-slate-900">
+                এয়ানত শীট
+              </button>
+              <button type="button" onClick={() => setSection('expenses')} className="hover:text-slate-900">
+                মাসিক ব্যয়
+              </button>
+              <button type="button" onClick={() => setSection('advisors')} className="hover:text-slate-900">
+                উপদেষ্টা
+              </button>
+              <button type="button" onClick={() => setSection('finance')} className="hover:text-slate-900">
+                আয়-ব্যয়
+              </button>
+              <button type="button" onClick={() => setSection('notices')} className="hover:text-slate-900">
+                নোটিশ
+              </button>
+              <button type="button" onClick={() => setSection('contact')} className="hover:text-slate-900">
+                যোগাযোগ
+              </button>
+              <button type="button" onClick={() => setSection('about')} className="hover:text-slate-900">
+                আমাদের সম্পর্কে
+              </button>
+            </div>
+            <span>© {new Date().getFullYear()} {ORG_NAME}</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Read-Only Member Profile, 12-Month Eyanot & Printable ID Card View */}
+      {selectedMember && (
+        <Suspense fallback={null}>
+          <MemberProfileModal
+            member={selectedMember}
+            isAdmin={false}
+            orgLogoUrl={data.logoUrl}
+            onClose={() => setSelectedMemberId(null)}
+          />
+        </Suspense>
+      )}
+
+      {/* Transaction Receipt / Voucher View */}
+      {receiptTx && (
+        <Suspense fallback={null}>
+          <ReceiptModal
+            transaction={receiptTx}
+            orgLogoUrl={data.logoUrl}
+            onClose={() => setReceiptTx(null)}
+          />
+        </Suspense>
+      )}
+
+      {/* Public Membership Application Modal */}
+      {onSubmitApplication && applyModalOpen && (
+        <Suspense fallback={null}>
+          <MemberApplyModal
+            open={applyModalOpen}
+            onClose={() => setApplyModalOpen(false)}
+            onSubmitApplication={onSubmitApplication}
+          />
+        </Suspense>
+      )}
+
+      {/* Admin-only PDF & Print Preview Modal */}
+      {isAdmin && pdfPreviewPayload && (
+        <Suspense fallback={null}>
+          <PdfPrintPreviewModal
+            payload={pdfPreviewPayload}
+            orgLogoUrl={data.logoUrl}
+            onClose={() => setPdfPreviewPayload(null)}
+          />
+        </Suspense>
+      )}
+    </div>
+  );
+};

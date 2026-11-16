@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "OrganizationData": {
+      "title": "Organization Data",
+      "description": "Central persistent storage for Al Azhar Islamic Organization including members, notices, transactions, eyanot, and projects.",
+      "type": "object",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Name of the organization"
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Optional custom logo URL or base64 data URI"
+        },
+        "members": {
+          "type": "array",
+          "description": "List of active and registered members"
+        },
+        "advisors": {
+          "type": "array",
+          "description": "List of advisory committee members"
+        },
+        "transactions": {
+          "type": "array",
+          "description": "Income, expense, and eyanot payment records"
+        },
+        "notices": {
+          "type": "array",
+          "description": "Official announcements and urgent meeting notices"
+        },
+        "projects": {
+          "type": "array",
+          "description": "Welfare and community projects"
+        },
+        "donationRequests": {
+          "type": "array",
+          "description": "Public donation submissions awaiting verification"
+        },
+        "memberApplications": {
+          "type": "array",
+          "description": "New member membership applications awaiting review"
+        },
+        "backupSettings": {
+          "type": "object",
+          "description": "Auto and scheduled backup settings"
+        },
+        "backupHistory": {
+          "type": "array",
+          "description": "Google Drive backup history logs"
+        },
+        "driveDocuments": {
+          "type": "array",
+          "description": "Saved shareable Google Drive document metadata and links"
+        },
+        "seededKeys": {
+          "type": "array",
+          "description": "List of idempotently seeded item keys"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["organization", "members", "transactions", "notices", "projects"]
+    },
+    "TestConnection": {
+      "title": "Test Connection",
+      "description": "Test document for verifying Firestore connectivity on boot",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Status string"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/organizations/{orgId}": {
+      "schema": "OrganizationData",
+      "description": "Stores organization records including members, notices, eyanot, transactions, and projects"
+    },
+    "/test/connection": {
+      "schema": "TestConnection",
+      "description": "Test connectivity path verified on application boot"
+    }
+  }
+}
