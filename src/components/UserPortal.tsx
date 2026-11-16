@@ -8,9 +8,11 @@ import {
   Copy,
   Download,
   Droplets,
+  Eye,
   FileText,
   HeartHandshake,
   Lock,
+  LogOut,
   Mail,
   MapPin,
   Menu,
@@ -18,6 +20,7 @@ import {
   Phone,
   Printer,
   ReceiptText,
+  RefreshCw,
   Search,
   UserPlus,
   Users,
@@ -104,6 +107,8 @@ interface UserPortalProps {
   onSubmitDonation?: (req: Omit<DonationRequest, 'id' | 'submittedAt' | 'status'>) => void;
   onSubmitApplication?: (app: Omit<MemberApplication, 'id' | 'submittedAt' | 'status'>) => void;
   onOpenAdmin: () => void;
+  onLogout: () => void;
+  onSwitchAccount: () => void;
   onRequireLogin: (targetSection: PortalSection, sectionLabel: string) => void;
   onAdminQuickEdit?: (tab: 'members' | 'advisors' | 'finance' | 'notices' | 'projects' | 'eyanot' | 'expenses') => void;
 }
@@ -118,6 +123,8 @@ export const UserPortal: React.FC<UserPortalProps> = ({
   onSubmitDonation,
   onSubmitApplication,
   onOpenAdmin,
+  onLogout,
+  onSwitchAccount,
   onRequireLogin,
   onAdminQuickEdit,
 }) => {
@@ -425,19 +432,25 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
           {/* Zone 3: CTA & Mobile Hamburger Toggle */}
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onOpenAdmin}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
-            >
-              <Lock className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">
-                {isAdmin ? 'অ্যাডমিন প্যানেল' : role === 'user' ? 'ইউজার অ্যাকাউন্ট' : 'লগইন'}
-              </span>
-              <span className="inline sm:hidden">
-                {isAdmin ? 'প্যানেল' : role === 'user' ? 'ইউজার' : 'লগইন'}
-              </span>
-            </button>
+            {role === 'visitor' ? (
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2.5 sm:py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                <span>লগইন</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2.5 sm:py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>লগআউট</span>
+              </button>
+            )}
 
             {/* Mobile Hamburger Button */}
             <button
@@ -453,7 +466,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
         {/* Mobile Hamburger Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 shadow-xl">
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 shadow-xl space-y-3">
             <nav className="grid grid-cols-1 gap-1.5">
               {navItems.map((item) => (
                 <button
@@ -475,6 +488,57 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 </button>
               ))}
             </nav>
+
+            {role !== 'visitor' && (
+              <div className="border-t border-slate-200 pt-3 grid grid-cols-1 gap-2">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenAdmin();
+                    }}
+                    className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm font-semibold text-emerald-900"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-emerald-700" />
+                      অ্যাডমিন প্যানেল
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-emerald-700" />
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onLogout();
+                  }}
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                >
+                  <span className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-emerald-700" />
+                    ভিজিটর হিসেবে দেখুন
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-slate-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onSwitchAccount();
+                  }}
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                >
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-emerald-700" />
+                    অ্যাকাউন্ট বদলান
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-slate-400" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -1951,6 +2015,33 @@ export const UserPortal: React.FC<UserPortalProps> = ({
               <button type="button" onClick={() => setSection('about')} className="hover:text-slate-900">
                 আমাদের সম্পর্কে
               </button>
+              {role !== 'visitor' && (
+                <>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={onOpenAdmin}
+                      className="font-semibold text-emerald-800 hover:underline"
+                    >
+                      অ্যাডমিন প্যানেল
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="font-semibold text-slate-700 hover:text-emerald-800 hover:underline"
+                  >
+                    ভিজিটর হিসেবে দেখুন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onSwitchAccount}
+                    className="font-semibold text-slate-700 hover:text-emerald-800 hover:underline"
+                  >
+                    অ্যাকাউন্ট বদলান
+                  </button>
+                </>
+              )}
             </div>
             <span>© {new Date().getFullYear()} {ORG_NAME}</span>
           </div>

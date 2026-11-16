@@ -868,6 +868,22 @@ export default function App() {
     </div>
   );
 
+  const handleLogoutToVisitor = useCallback(() => {
+    setRole('visitor');
+    setPermissionMessage(null);
+    setLoginModalState({ open: false, defaultTab: 'user' });
+    setPortalSection((prev) => (LOCKED_VISITOR_SECTIONS.has(prev) ? 'home' : prev));
+    setView('user');
+  }, []);
+
+  const handleSwitchAccount = useCallback(() => {
+    setRole('visitor');
+    setPermissionMessage(null);
+    setLoginModalState({ open: false, defaultTab: 'user' });
+    setPortalSection((prev) => (LOCKED_VISITOR_SECTIONS.has(prev) ? 'home' : prev));
+    setView('login');
+  }, []);
+
   if (view === 'login') {
     return (
       <Suspense fallback={adminFallback}>
@@ -925,13 +941,9 @@ export default function App() {
           onRestoreData={handleRestoreData}
           onMutateData={handleMutateData}
           onViewPublicPortal={() => setView('user')}
-          onAdminLogout={() => {
-            setRole('visitor');
-            if (LOCKED_VISITOR_SECTIONS.has(portalSection)) {
-              setPortalSection('home');
-            }
-            setView('user');
-          }}
+          onViewAsVisitor={handleLogoutToVisitor}
+          onSwitchAccount={handleSwitchAccount}
+          onAdminLogout={handleLogoutToVisitor}
         />
       </Suspense>
     );
@@ -959,6 +971,8 @@ export default function App() {
             });
           }
         }}
+        onLogout={handleLogoutToVisitor}
+        onSwitchAccount={handleSwitchAccount}
         onRequireLogin={(targetSection, sectionLabel) => {
           setLoginModalState({
             open: true,
@@ -997,13 +1011,7 @@ export default function App() {
                 setView('user');
               }
             }}
-            onLogout={() => {
-              setRole('visitor');
-              setLoginModalState({ open: false, defaultTab: 'user' });
-              if (LOCKED_VISITOR_SECTIONS.has(portalSection)) {
-                setPortalSection('home');
-              }
-            }}
+            onLogout={handleLogoutToVisitor}
             onClose={() => setLoginModalState({ open: false, defaultTab: 'user' })}
           />
         </Suspense>

@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CloudUpload,
   ExternalLink,
+  Eye,
   FileText,
   HardDrive,
   LayoutDashboard,
@@ -160,6 +161,8 @@ interface AdminPanelProps {
   onRestoreData?: (restored: OrganizationData) => void;
   onMutateData: (updater: (prev: OrganizationData) => OrganizationData, actionDescription: string) => void;
   onViewPublicPortal: () => void;
+  onViewAsVisitor: () => void;
+  onSwitchAccount: () => void;
   onAdminLogout: () => void;
 }
 
@@ -195,6 +198,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onRestoreData,
   onMutateData,
   onViewPublicPortal,
+  onViewAsVisitor,
+  onSwitchAccount,
   onAdminLogout,
 }) => {
   const activeLogoSrc = data.logoUrl || DEFAULT_LOGO_URL;
@@ -880,11 +885,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </button>
           <button
             type="button"
+            onClick={onViewAsVisitor}
+            className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
+          >
+            <Eye className="h-3.5 w-3.5 text-emerald-700" />
+            ভিজিটর হিসেবে দেখুন
+          </button>
+          <button
+            type="button"
+            onClick={onSwitchAccount}
+            className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <RefreshCw className="h-3.5 w-3.5 text-emerald-700" />
+            অ্যাকাউন্ট বদলান
+          </button>
+          <button
+            type="button"
             onClick={onAdminLogout}
             className="flex w-full items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-medium text-red-700 transition-colors hover:bg-red-50"
           >
             <LogOut className="h-3.5 w-3.5" />
-            অ্যাডমিন লগআউট
+            লগআউট
           </button>
         </div>
       </aside>
@@ -963,13 +984,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={onViewPublicPortal}
-                className="lg:hidden inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700"
-              >
-                পোর্টাল
-              </button>
+              <div className="lg:hidden flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onViewPublicPortal}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  পোর্টাল
+                </button>
+                <button
+                  type="button"
+                  onClick={onViewAsVisitor}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  <Eye className="h-3.5 w-3.5 text-emerald-700" />
+                  ভিজিটর হিসেবে দেখুন
+                </button>
+                <button
+                  type="button"
+                  onClick={onSwitchAccount}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 text-emerald-700" />
+                  অ্যাকাউন্ট বদলান
+                </button>
+                <button
+                  type="button"
+                  onClick={onAdminLogout}
+                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-900"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  লগআউট
+                </button>
+              </div>
             </div>
           </div>
         </header>
