@@ -1,5 +1,6 @@
-import defaultLogoAsset from './assets/images/org_emblem_logo_1794550157950.jpg';
-import homeBannerAsset from './assets/images/home_hero_banner_1794550158772.jpg';
+import defaultLogoAsset from './assets/images/org_emblem_logo.webp';
+import homeBannerAsset from './assets/images/home_hero_banner.webp';
+import homeBannerMobileAsset from './assets/images/home_hero_banner_mobile.webp';
 
 export const ORG_NAME = 'আল আজহার ইসলামী সংস্থা';
 export const ORG_TAGLINE = 'শিক্ষা, সেবা, দাওয়াহ, ঐক্য';
@@ -7,6 +8,7 @@ export const DRIVE_BACKUP_FOLDER_NAME = 'আল আজহার ইসলাম�
 export const DRIVE_DOCUMENTS_FOLDER_NAME = 'Al-Azhar-Documents';
 export const DEFAULT_LOGO_URL = defaultLogoAsset;
 export const HOME_BANNER_URL = homeBannerAsset;
+export const HOME_BANNER_MOBILE_URL = homeBannerMobileAsset;
 
 export type UserRole = 'admin' | 'user';
 

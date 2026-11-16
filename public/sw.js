@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'al-azhar-cache-v2';
+const CACHE_VERSION = 'al-azhar-cache-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (shouldBypassCache(url)) return;
 
-  // 1. Hashed Vite static assets & images: Cache-First, NEVER cache HTML fallback responses
+  // 1. Hashed Vite static assets & compressed WebP images: Cache-First, NEVER cache HTML fallback responses
   if (url.origin === self.location.origin && url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => {
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Google Fonts stylesheets and font files: Stale-While-Revalidate
+  // 2. Google Fonts stylesheets and font files: Cache-First / Stale-While-Revalidate
   if (
     url.hostname === 'fonts.googleapis.com' ||
     url.hostname === 'fonts.gstatic.com'
@@ -90,7 +90,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. App shell / HTML navigation: Always fetch fresh from network (no-store) so deploys never serve stale chunk hashes
+  // 3. App shell / HTML navigation: Conditional ETag check (fast 304 on unchanged deploys) with offline fallback
   if (
     request.mode === 'navigate' ||
     (url.origin === self.location.origin &&

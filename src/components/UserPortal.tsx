@@ -27,6 +27,7 @@ import {
 import {
   DEFAULT_LOGO_URL,
   DonationRequest,
+  HOME_BANNER_MOBILE_URL,
   HOME_BANNER_URL,
   BENGALI_MONTHS,
   BLOOD_GROUPS,
@@ -50,7 +51,6 @@ import {
   buildTransactionDonationPdfPayload,
   PdfPrintPayload,
 } from '../services/donationProjectPdfGenerator';
-
 const AdminEyanotSheet = lazy(() =>
   import('./AdminEyanotSheet').then((m) => ({ default: m.AdminEyanotSheet }))
 );
@@ -373,10 +373,10 @@ export const UserPortal: React.FC<UserPortalProps> = ({
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 overflow-x-hidden">
       {/* Strict 3-Zone Top Bar Contract */}
       <header className="no-print sticky top-0 z-35 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 py-3.5">
           {/* Zone 1: Single-line Brand Wordmark */}
           <button
             type="button"
@@ -384,10 +384,10 @@ export const UserPortal: React.FC<UserPortalProps> = ({
               setSection('home');
               setMobileMenuOpen(false);
             }}
-            className="flex items-center gap-2.5 text-left whitespace-nowrap shrink-0"
+            className="flex min-w-0 items-center gap-2.5 text-left"
           >
             <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />
-            <span className="font-display text-base sm:text-lg font-bold tracking-tight text-slate-900">
+            <span className="truncate font-display text-[15px] sm:text-lg font-bold tracking-tight text-slate-900">
               {ORG_NAME}
             </span>
           </button>
@@ -411,11 +411,11 @@ export const UserPortal: React.FC<UserPortalProps> = ({
           </nav>
 
           {/* Zone 3: CTA & Mobile Hamburger Toggle */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={onOpenAdmin}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
             >
               <Lock className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{isAdmin ? 'অ্যাডমিন প্যানেল' : 'অ্যাডমিন লগইন'}</span>
@@ -426,7 +426,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
             <button
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="inline-flex lg:hidden items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-700 hover:bg-slate-100 transition-colors"
+              className="inline-flex lg:hidden items-center justify-center rounded-lg border border-slate-300 bg-white p-2.5 text-slate-700 hover:bg-slate-100 transition-colors"
               aria-label="মেনু খুলুন"
             >
               {mobileMenuOpen ? <X className="h-5 w-5 text-emerald-800" /> : <Menu className="h-5 w-5 text-emerald-800" />}
@@ -486,10 +486,14 @@ export const UserPortal: React.FC<UserPortalProps> = ({
         {section === 'home' && (
           <div className="pb-10 sm:pb-14">
             {/* 1. Institutional Hero Banner */}
-            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-5 sm:pt-7">
+            <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-4 sm:pt-7">
               <div className="relative overflow-hidden rounded-2xl border border-emerald-950/20 bg-emerald-950 shadow-sm">
                 <img
                   src={HOME_BANNER_URL}
+                  srcSet={`${HOME_BANNER_MOBILE_URL} 640w, ${HOME_BANNER_URL} 1080w`}
+                  sizes="(max-width: 640px) 100vw, 1080px"
+                  width={1080}
+                  height={603}
                   alt={ORG_NAME}
                   referrerPolicy="no-referrer"
                   loading="eager"
@@ -497,9 +501,9 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   fetchPriority="high"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/80 to-emerald-950/75" />
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/82 to-emerald-950/75" />
 
-                <div className="relative z-10 grid gap-7 p-6 sm:p-9 lg:grid-cols-12 lg:items-center lg:gap-10 lg:p-11">
+                <div className="relative z-10 grid grid-cols-1 gap-6 p-5 sm:p-9 lg:grid-cols-12 lg:items-center lg:gap-10 lg:p-11">
                   {/* Hero Brand & Mission */}
                   <div className="lg:col-span-7 text-center lg:text-left">
                     <div className="flex flex-col items-center gap-4 sm:flex-row lg:items-center">
@@ -510,16 +514,16 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                         className="!h-16 !w-16 sm:!h-20 sm:!w-20 border-2 border-white/75 shadow-md"
                       />
                       <div>
-                        <p className="text-xs sm:text-sm font-semibold tracking-wide text-emerald-300">
+                        <p className="text-sm font-semibold tracking-wide text-emerald-300">
                           {ORG_TAGLINE}
                         </p>
-                        <h1 className="mt-1 font-display text-2xl sm:text-4xl lg:text-[42px] font-bold leading-tight tracking-tight text-white text-balance">
+                        <h1 className="mt-1 font-display text-[26px] sm:text-4xl lg:text-[42px] font-bold leading-tight tracking-tight text-white text-balance">
                           {ORG_NAME}
                         </h1>
                       </div>
                     </div>
 
-                    <p className="mt-4 max-w-2xl mx-auto lg:mx-0 text-sm sm:text-base leading-relaxed text-slate-200">
+                    <p className="mt-4 max-w-2xl mx-auto lg:mx-0 text-[15px] sm:text-base leading-relaxed text-slate-200">
                       মানবকল্যাণ, দ্বীনি শিক্ষা প্রসার, এতিম সহায়তা ও স্বচ্ছ সামাজিক সেবায় নিবেদিত একটি অরাজনৈতিক ও অলাভজনক ইসলামী কল্যাণমূলক সংগঠন।
                     </p>
 
@@ -527,7 +531,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                       <button
                         type="button"
                         onClick={() => setSection('finance')}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 shadow-xs whitespace-nowrap"
+                        className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 sm:py-2.5 text-[15px] sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-500 shadow-xs whitespace-nowrap"
                       >
                         আর্থিক স্বচ্ছতা দেখুন
                         <ArrowRight className="h-4 w-4" />
@@ -536,7 +540,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                         <button
                           type="button"
                           onClick={() => setApplyModalOpen(true)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/12 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20 whitespace-nowrap"
+                          className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/12 px-5 py-3 sm:py-2.5 text-[15px] sm:text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20 whitespace-nowrap"
                         >
                           <UserPlus className="h-4 w-4" />
                           সদস্য হওয়ার আবেদন
@@ -545,7 +549,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                       <button
                         type="button"
                         onClick={() => setSection('about')}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-transparent px-4 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10 whitespace-nowrap"
+                        className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-transparent px-5 py-3 sm:py-2.5 text-[15px] sm:text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10 whitespace-nowrap"
                       >
                         আমাদের সম্পর্কে
                       </button>
@@ -554,9 +558,9 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
                   {/* Hero Quick Overview & Navigation Panel */}
                   <div className="lg:col-span-5">
-                    <div className="rounded-xl border border-white/15 bg-slate-950/60 p-5 backdrop-blur-md text-white">
+                    <div className="rounded-xl border border-white/15 bg-slate-950/65 p-5 backdrop-blur-md text-white">
                       <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-3">
-                        <span className="text-xs font-semibold text-emerald-200">
+                        <span className="text-sm sm:text-xs font-semibold text-emerald-200">
                           তাৎক্ষণিক সংগঠন চিত্র
                         </span>
                         <span className="font-mono-num text-xs text-slate-300">
@@ -565,65 +569,65 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                       </div>
 
                       <div className="mt-4">
-                        <p className="text-xs text-slate-300">বর্তমান মোট তহবিল (নেট স্থিতি)</p>
+                        <p className="text-sm sm:text-xs text-slate-300">বর্তমান মোট তহবিল (নেট স্থিতি)</p>
                         <p className="mt-1 font-mono-num text-2xl sm:text-3xl font-bold text-white">
                           ৳ {stats.netBalance.toLocaleString('en-US')}
                         </p>
                       </div>
 
-                      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4 text-xs">
-                        <div>
+                      <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-white/15 pt-4 text-sm sm:text-xs">
+                        <div className="flex items-center justify-between sm:block">
                           <dt className="text-slate-300">মোট আয়</dt>
-                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-emerald-300">
+                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-emerald-300">
                             ৳ {stats.totalIncome.toLocaleString('en-US')}
                           </dd>
                         </div>
-                        <div>
+                        <div className="flex items-center justify-between sm:block">
                           <dt className="text-slate-300">মোট ব্যয়</dt>
-                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-rose-300">
+                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-rose-300">
                             ৳ {stats.totalExpense.toLocaleString('en-US')}
                           </dd>
                         </div>
-                        <div>
+                        <div className="flex items-center justify-between sm:block">
                           <dt className="text-slate-300">নিবন্ধিত সদস্য</dt>
-                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-white">
+                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
                             {stats.totalMembers} জন
                           </dd>
                         </div>
-                        <div>
+                        <div className="flex items-center justify-between sm:block">
                           <dt className="text-slate-300">উপদেষ্টা মণ্ডলী</dt>
-                          <dd className="mt-0.5 font-mono-num text-sm font-bold text-white">
+                          <dd className="sm:mt-0.5 font-mono-num text-base sm:text-sm font-bold text-white">
                             {stats.totalAdvisors} জন
                           </dd>
                         </div>
                       </dl>
 
-                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/15 pt-3.5 text-xs">
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-t border-white/15 pt-3.5 text-sm sm:text-xs">
                         <button
                           type="button"
                           onClick={() => setSection('projects')}
-                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
                         >
                           প্রকল্পসমূহ →
                         </button>
                         <button
                           type="button"
                           onClick={() => setSection('members')}
-                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
                         >
                           সদস্য ডিরেক্টরি →
                         </button>
                         <button
                           type="button"
                           onClick={() => setSection('eyanot')}
-                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
                         >
                           এয়ানত শীট →
                         </button>
                         <button
                           type="button"
                           onClick={() => setSection('expenses')}
-                          className="rounded-lg bg-white/10 px-3 py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
+                          className="rounded-lg bg-white/12 px-3.5 py-2.5 sm:py-2 text-left font-semibold text-white transition-colors hover:bg-white/20"
                         >
                           মাসিক ব্যয় →
                         </button>
@@ -636,20 +640,20 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
             {/* 2. Key Transparency Strip */}
             <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px rounded-2xl border border-slate-200 bg-slate-200 shadow-xs overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setSection('finance')}
-                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
                 >
-                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
                     <span>বর্তমান তহবিল</span>
                     <Wallet className="h-4 w-4 text-emerald-700 shrink-0" />
                   </div>
-                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-slate-900">
+                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-slate-900">
                     ৳ {stats.netBalance.toLocaleString('en-US')}
                   </p>
-                  <p className="mt-1 text-xs font-semibold text-emerald-800">
+                  <p className="mt-1.5 text-sm sm:text-xs font-semibold text-emerald-800">
                     বিস্তারিত হিসাব →
                   </p>
                 </button>
@@ -657,16 +661,16 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSection('eyanot')}
-                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
                 >
-                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
                     <span>মোট আয় ও এয়ানত</span>
                     <HeartHandshake className="h-4 w-4 text-emerald-700 shrink-0" />
                   </div>
-                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-emerald-800">
+                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-emerald-800">
                     ৳ {stats.totalIncome.toLocaleString('en-US')}
                   </p>
-                  <p className="mt-1 font-mono-num text-xs text-slate-500">
+                  <p className="mt-1.5 font-mono-num text-sm sm:text-xs text-slate-500">
                     এয়ানত: ৳ {totalEyanotCollected.toLocaleString('en-US')}
                   </p>
                 </button>
@@ -674,16 +678,16 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSection('expenses')}
-                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
                 >
-                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
                     <span>মোট ব্যয়</span>
                     <ReceiptText className="h-4 w-4 text-rose-700 shrink-0" />
                   </div>
-                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-rose-700">
+                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-rose-700">
                     ৳ {stats.totalExpense.toLocaleString('en-US')}
                   </p>
-                  <p className="mt-1 text-xs font-semibold text-slate-600">
+                  <p className="mt-1.5 text-sm sm:text-xs font-semibold text-slate-600">
                     মাসিক ব্যয়ের বিবরণ →
                   </p>
                 </button>
@@ -691,16 +695,16 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSection('members')}
-                  className="p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/80"
+                  className="bg-white p-5 text-left transition-colors hover:bg-slate-50/80"
                 >
-                  <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+                  <div className="flex items-center justify-between gap-2 text-sm sm:text-xs font-medium text-slate-500">
                     <span>সক্রিয় সদস্যবৃন্দ</span>
                     <Users className="h-4 w-4 text-emerald-700 shrink-0" />
                   </div>
-                  <p className="mt-1.5 font-mono-num text-lg sm:text-2xl font-bold text-slate-900">
+                  <p className="mt-1.5 font-mono-num text-2xl font-bold text-slate-900">
                     {stats.activeMembers} জন
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1.5 text-sm sm:text-xs text-slate-500">
                     মোট সদস্য {stats.totalMembers} · উপদেষ্টা {stats.totalAdvisors}
                   </p>
                 </button>
@@ -709,7 +713,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
             {/* 3. Financial Charts & Official Donation Desk (12-Column Balanced Grid) */}
             <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-8">
-              <div className="grid gap-6 lg:grid-cols-12 lg:items-stretch">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch">
                 {/* Left (7 cols): Income, Expense & Eyanot Donut + Project Pie */}
                 {(() => {
                   const incomeVal = stats.totalIncome;
@@ -740,9 +744,9 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   ];
 
                   return (
-                    <div className="lg:col-span-7 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+                    <div className="lg:col-span-7 min-w-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xs">
                       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-4">
-                        <div>
+                        <div className="min-w-0">
                           <h2 className="font-display text-lg sm:text-xl font-bold text-slate-900">
                             আর্থিক ও এয়ানত সারসংক্ষেপ
                           </h2>
@@ -753,14 +757,14 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                         <button
                           type="button"
                           onClick={() => setSection('finance')}
-                          className="text-xs sm:text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
+                          className="text-sm font-semibold text-emerald-800 hover:underline whitespace-nowrap"
                         >
                           বিস্তারিত হিসাব দেখুন →
                         </button>
                       </div>
 
-                      <div className="mt-5 grid gap-6 md:grid-cols-12 md:items-center">
-                        <div className="md:col-span-7 flex items-center justify-center">
+                      <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-12 md:items-center">
+                        <div className="md:col-span-7 min-w-0 flex items-center justify-center">
                           <DonutChart
                             centerLabel="বর্তমান তহবিল"
                             centerValue={`৳ ${stats.netBalance.toLocaleString('en-US')}`}
@@ -771,7 +775,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                         </div>
 
                         {/* Separated by hairline divider instead of nested card */}
-                        <div className="md:col-span-5 md:border-l md:border-slate-200 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 flex flex-col items-center gap-3">
+                        <div className="md:col-span-5 min-w-0 md:border-l md:border-slate-200 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 flex flex-col items-center gap-3">
                           <div className="text-center">
                             <h3 className="font-display text-sm font-bold leading-snug text-slate-900">
                               দান ও অন্যান্য প্রকল্প বাবদ আয় ও ব্যয়
@@ -818,7 +822,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 })()}
 
                 {/* Right (5 cols): Official Donation & Contact Card */}
-                <div className="lg:col-span-5 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+                <div className="lg:col-span-5 min-w-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
                   <div>
                     <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-4">
                       <div>
@@ -832,7 +836,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                       <Phone className="h-5 w-5 text-[#E2136E] shrink-0" />
                     </div>
 
-                    <p className="mt-4 text-sm leading-relaxed text-slate-600">
+                    <p className="mt-4 text-[15px] sm:text-sm leading-relaxed text-slate-600">
                       আপনার যাকাত, সাদাকাহ ও কল্যাণমূলক অনুদান এতিম সহায়তা, দ্বীনি শিক্ষা ও মানবসেবায় সরাসরি ব্যয় করা হয়।
                     </p>
 
@@ -840,12 +844,12 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                       <p className="text-xs font-medium text-slate-600">
                         বিকাশ পার্সোনাল নাম্বার
                       </p>
-                      <p className="mt-1 font-mono-num text-2xl sm:text-[26px] font-bold tracking-wide text-[#E2136E]">
+                      <p className="mt-1 font-mono-num text-2xl sm:text-[26px] font-bold tracking-wide text-[#E2136E] break-all">
                         +8801810893388
                       </p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2.5">
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={async () => {
@@ -855,14 +859,14 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                             setTimeout(() => setHomeCopiedMsg(null), 3000);
                           }
                         }}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#E2136E] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-[#c50f5e] shadow-xs whitespace-nowrap"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#E2136E] px-4 py-3 sm:py-2.5 text-[15px] sm:text-sm font-semibold text-white transition-colors hover:bg-[#c50f5e] shadow-xs whitespace-nowrap"
                       >
                         <Copy className="h-4 w-4" />
                         নাম্বার কপি
                       </button>
                       <a
                         href={ORG_CONTACT.phoneTelHref}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 whitespace-nowrap"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 sm:py-2.5 text-[15px] sm:text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 whitespace-nowrap"
                       >
                         <Phone className="h-4 w-4 text-emerald-700" />
                         কল করুন
@@ -905,14 +909,14 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="font-display text-2xl font-bold text-slate-900">সাম্প্রতিক নোটিশ</h2>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-[15px] sm:text-sm text-slate-600">
                       {ORG_NAME}-এর সর্বশেষ বিজ্ঞপ্তি ও কর্মসূচি
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSection('notices')}
-                    className="text-sm font-semibold text-emerald-800 hover:underline self-start sm:self-auto"
+                    className="py-1 text-[15px] sm:text-sm font-semibold text-emerald-800 hover:underline self-start sm:self-auto"
                   >
                     সব নোটিশ দেখুন →
                   </button>
@@ -922,7 +926,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   {sortedNotices.slice(0, 3).map((notice) => (
                     <article
                       key={notice.id}
-                      className={`p-5 sm:p-6 transition-colors ${
+                      className={`p-4 sm:p-6 transition-colors ${
                         notice.important ? 'bg-red-50/35' : 'bg-white'
                       }`}
                     >
@@ -952,10 +956,10 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                             </span>
                           </div>
 
-                          <h3 className="mt-2 font-display text-base sm:text-lg font-bold text-slate-900">
+                          <h3 className="mt-2 font-display text-lg font-bold text-slate-900">
                             {notice.title}
                           </h3>
-                          <p className="mt-1.5 text-sm leading-relaxed text-slate-600 max-w-3xl">
+                          <p className="mt-1.5 text-[15px] sm:text-sm leading-relaxed text-slate-600 max-w-3xl">
                             {notice.content}
                           </p>
                         </div>
@@ -965,7 +969,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                             type="button"
                             onClick={() => handleDownloadNoticePdf(notice)}
                             disabled={downloadingNoticeId === notice.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shrink-0 self-start"
+                            className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 sm:py-1.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shrink-0 self-start"
                             title="পিডিএফ ডাউনলোড করুন"
                           >
                             <Download className="h-3.5 w-3.5 text-emerald-700" />
@@ -988,21 +992,21 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   <h2 className="font-display text-2xl font-bold text-slate-900">
                     আমাদের প্রধান সেবামূলক প্রকল্প ও কার্যক্রম
                   </h2>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-[15px] sm:text-sm text-slate-600">
                     {ORG_NAME}-এর চলমান কল্যাণ ও শিক্ষামূলক প্রকল্পসমূহ
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSection('projects')}
-                  className="text-sm font-semibold text-emerald-800 hover:underline self-start sm:self-auto"
+                  className="py-1 text-[15px] sm:text-sm font-semibold text-emerald-800 hover:underline self-start sm:self-auto"
                 >
                   সব প্রকল্প দেখুন →
                 </button>
               </div>
 
               {homeProjectsList.length > 0 ? (
-                <div className="mt-5 grid gap-5 md:grid-cols-3">
+                <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
                   {homeProjectsList.slice(0, 3).map((project) => (
                     <ProjectCard
                       key={project.id}
@@ -1098,7 +1102,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
         )}
 
         {section === 'members' && (
-          <section className="mx-auto max-w-6xl px-6 py-10">
+          <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="font-display text-2xl font-bold text-slate-900">
@@ -1244,6 +1248,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                             alt={member.name}
                             variant="standard"
                             isPhoto={Boolean(member.photoUrl)}
+                            loading="lazy"
                           />
                           <div className="min-w-0">
                             <h3 className="truncate font-display text-base font-bold text-slate-900">
@@ -1334,6 +1339,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                               alt={member.name}
                               variant="compact"
                               isPhoto={Boolean(member.photoUrl)}
+                              loading="lazy"
                             />
                             <div>
                               <div className="font-medium text-slate-900">{member.name}</div>
@@ -1825,10 +1831,10 @@ export const UserPortal: React.FC<UserPortalProps> = ({
       </main>
 
       <footer className="no-print border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 space-y-6">
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div className="flex items-center gap-3">
-              <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />
+              <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" loading="lazy" />
               <div>
                 <p className="font-display text-sm font-bold text-slate-900">{ORG_NAME}</p>
                 <p className="text-xs text-slate-500">{ORG_TAGLINE}</p>

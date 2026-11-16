@@ -75,7 +75,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <h3 className="mt-2 font-display text-lg sm:text-xl font-bold text-slate-900">
               {project.title}
             </h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            <p className="mt-1.5 text-[15px] sm:text-sm leading-relaxed text-slate-600">
               {project.description}
             </p>
           </div>
@@ -295,7 +295,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   }
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
       <div>
         <div className="flex items-start justify-between gap-2">
           <p className="text-xs text-slate-500">
@@ -350,7 +350,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           ) : null}
         </div>
         <h3 className="mt-2 font-display text-lg font-bold text-slate-900">{project.title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">{project.description}</p>
+        <p className="mt-2 text-[15px] sm:text-sm leading-relaxed text-slate-600">{project.description}</p>
       </div>
 
       <div className="mt-5 space-y-2.5 border-t border-slate-100 pt-4">

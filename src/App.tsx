@@ -80,78 +80,76 @@ export default function App() {
   const scheduledCheckedRef = useRef(false);
   const lastFailedTriggerRef = useRef<BackupTrigger | null>(null);
 
-  // Realtime Firestore synchronization across all devices and browsers
+  // Sync live Firestore organization data on startup
   useEffect(() => {
+    let active = true;
     void testConnection();
 
-    // Ensure Firestore is initialized with organization data
     const local = loadOrganizationData();
     void ensureFirestoreInitialized(local).then((remoteOrLocal) => {
-      if (remoteOrLocal) {
-        setData((prev) => ({
-          ...prev,
-          ...remoteOrLocal,
-          members: Array.isArray(remoteOrLocal.members) ? remoteOrLocal.members : prev.members,
-          notices: Array.isArray(remoteOrLocal.notices) ? remoteOrLocal.notices : prev.notices,
-          transactions: Array.isArray(remoteOrLocal.transactions)
-            ? remoteOrLocal.transactions
-            : prev.transactions,
-          projects: Array.isArray(remoteOrLocal.projects) ? remoteOrLocal.projects : prev.projects,
-          advisors: Array.isArray(remoteOrLocal.advisors) ? remoteOrLocal.advisors : prev.advisors,
-          donationRequests: Array.isArray(remoteOrLocal.donationRequests)
-            ? remoteOrLocal.donationRequests
-            : prev.donationRequests,
-          memberApplications: Array.isArray(remoteOrLocal.memberApplications)
-            ? remoteOrLocal.memberApplications
-            : prev.memberApplications,
-          backupHistory: Array.isArray(remoteOrLocal.backupHistory)
-            ? remoteOrLocal.backupHistory
-            : prev.backupHistory,
-          backupSettings: remoteOrLocal.backupSettings
-            ? { ...prev.backupSettings, ...remoteOrLocal.backupSettings }
-            : prev.backupSettings,
-          driveDocuments: Array.isArray(remoteOrLocal.driveDocuments)
-            ? remoteOrLocal.driveDocuments
-            : prev.driveDocuments,
-        }));
-      }
+      if (!active || !remoteOrLocal) return;
+      setData((prev) => ({
+        ...prev,
+        ...remoteOrLocal,
+        members: Array.isArray(remoteOrLocal.members) ? remoteOrLocal.members : prev.members,
+        notices: Array.isArray(remoteOrLocal.notices) ? remoteOrLocal.notices : prev.notices,
+        transactions: Array.isArray(remoteOrLocal.transactions)
+          ? remoteOrLocal.transactions
+          : prev.transactions,
+        projects: Array.isArray(remoteOrLocal.projects) ? remoteOrLocal.projects : prev.projects,
+        advisors: Array.isArray(remoteOrLocal.advisors) ? remoteOrLocal.advisors : prev.advisors,
+        donationRequests: Array.isArray(remoteOrLocal.donationRequests)
+          ? remoteOrLocal.donationRequests
+          : prev.donationRequests,
+        memberApplications: Array.isArray(remoteOrLocal.memberApplications)
+          ? remoteOrLocal.memberApplications
+          : prev.memberApplications,
+        backupHistory: Array.isArray(remoteOrLocal.backupHistory)
+          ? remoteOrLocal.backupHistory
+          : prev.backupHistory,
+        backupSettings: remoteOrLocal.backupSettings
+          ? { ...prev.backupSettings, ...remoteOrLocal.backupSettings }
+          : prev.backupSettings,
+        driveDocuments: Array.isArray(remoteOrLocal.driveDocuments)
+          ? remoteOrLocal.driveDocuments
+          : prev.driveDocuments,
+      }));
     });
 
-    // Realtime subscription: Any change from any admin on any device updates all clients live
     const unsubscribe = subscribeToOrganizationData((remoteData) => {
-      if (remoteData) {
-        const { data: syncedData } = mergeCalendarBannerProjectSeed(remoteData);
-        setData((prev) => ({
-          ...prev,
-          ...syncedData,
-          members: Array.isArray(syncedData.members) ? syncedData.members : prev.members,
-          notices: Array.isArray(syncedData.notices) ? syncedData.notices : prev.notices,
-          transactions: Array.isArray(syncedData.transactions)
-            ? syncedData.transactions
-            : prev.transactions,
-          projects: Array.isArray(syncedData.projects) ? syncedData.projects : prev.projects,
-          advisors: Array.isArray(syncedData.advisors) ? syncedData.advisors : prev.advisors,
-          donationRequests: Array.isArray(syncedData.donationRequests)
-            ? syncedData.donationRequests
-            : prev.donationRequests,
-          memberApplications: Array.isArray(syncedData.memberApplications)
-            ? syncedData.memberApplications
-            : prev.memberApplications,
-          backupHistory: Array.isArray(syncedData.backupHistory)
-            ? syncedData.backupHistory
-            : prev.backupHistory,
-          backupSettings: syncedData.backupSettings
-            ? { ...prev.backupSettings, ...syncedData.backupSettings }
-            : prev.backupSettings,
-          driveDocuments: Array.isArray(syncedData.driveDocuments)
-            ? syncedData.driveDocuments
-            : prev.driveDocuments,
-        }));
-        saveOrganizationData(syncedData);
-      }
+      if (!active || !remoteData) return;
+      const { data: syncedData } = mergeCalendarBannerProjectSeed(remoteData);
+      setData((prev) => ({
+        ...prev,
+        ...syncedData,
+        members: Array.isArray(syncedData.members) ? syncedData.members : prev.members,
+        notices: Array.isArray(syncedData.notices) ? syncedData.notices : prev.notices,
+        transactions: Array.isArray(syncedData.transactions)
+          ? syncedData.transactions
+          : prev.transactions,
+        projects: Array.isArray(syncedData.projects) ? syncedData.projects : prev.projects,
+        advisors: Array.isArray(syncedData.advisors) ? syncedData.advisors : prev.advisors,
+        donationRequests: Array.isArray(syncedData.donationRequests)
+          ? syncedData.donationRequests
+          : prev.donationRequests,
+        memberApplications: Array.isArray(syncedData.memberApplications)
+          ? syncedData.memberApplications
+          : prev.memberApplications,
+        backupHistory: Array.isArray(syncedData.backupHistory)
+          ? syncedData.backupHistory
+          : prev.backupHistory,
+        backupSettings: syncedData.backupSettings
+          ? { ...prev.backupSettings, ...syncedData.backupSettings }
+          : prev.backupSettings,
+        driveDocuments: Array.isArray(syncedData.driveDocuments)
+          ? syncedData.driveDocuments
+          : prev.driveDocuments,
+      }));
+      saveOrganizationData(syncedData);
     });
 
     return () => {
+      active = false;
       unsubscribe();
     };
   }, []);

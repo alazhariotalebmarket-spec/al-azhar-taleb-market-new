@@ -9,6 +9,7 @@ interface OrgLogoProps {
   variant?: OrgLogoVariant;
   className?: string;
   isPhoto?: boolean;
+  loading?: 'eager' | 'lazy';
 }
 
 /**
@@ -26,6 +27,7 @@ export const OrgLogo: React.FC<OrgLogoProps> = ({
   variant = 'standard',
   className = '',
   isPhoto = false,
+  loading = 'eager',
 }) => {
   const [hasError, setHasError] = useState(false);
 
@@ -39,6 +41,8 @@ export const OrgLogo: React.FC<OrgLogoProps> = ({
     variant === 'compact'
       ? 'w-9 h-9 sm:w-11 sm:h-11'
       : 'w-14 h-14 sm:w-[76px] sm:h-[76px] md:w-24 md:h-24';
+
+  const imgDimension = variant === 'compact' ? 44 : 96;
 
   const containerStyle: React.CSSProperties = {
     borderRadius: '50%',
@@ -65,9 +69,11 @@ export const OrgLogo: React.FC<OrgLogoProps> = ({
       <img
         src={src}
         alt={alt}
+        width={imgDimension}
+        height={imgDimension}
         referrerPolicy="no-referrer"
-        loading="eager"
-        decoding="sync"
+        loading={loading}
+        decoding="async"
         onError={() => setHasError(true)}
         style={{
           objectFit: isPhoto ? 'cover' : 'contain',
