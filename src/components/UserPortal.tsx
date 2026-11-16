@@ -37,6 +37,7 @@ import {
   ORG_NAME,
   ORG_TAGLINE,
   OrganizationData,
+  PortalSection,
   Transaction,
   UserRole,
 } from '../types';
@@ -85,40 +86,42 @@ const SectionFallback = (
   </div>
 );
 
-type UserSection =
-  | 'home'
-  | 'projects'
-  | 'members'
-  | 'eyanot'
-  | 'expenses'
-  | 'advisors'
-  | 'finance'
-  | 'notices'
-  | 'contact'
-  | 'about';
+type UserSection = PortalSection;
+
+const VISITOR_LOCKED_SECTION_LABELS: Partial<Record<PortalSection, string>> = {
+  eyanot: 'এয়ানত শীট',
+  expenses: 'মাসিক ব্যয়',
+  finance: 'আয়-ব্যয়',
+};
 
 interface UserPortalProps {
   data: OrganizationData;
   role: UserRole;
+  activeSection: PortalSection;
+  onSectionChange: (section: PortalSection) => void;
   permissionMessage: string | null;
   onDismissPermissionMessage: () => void;
   onSubmitDonation?: (req: Omit<DonationRequest, 'id' | 'submittedAt' | 'status'>) => void;
   onSubmitApplication?: (app: Omit<MemberApplication, 'id' | 'submittedAt' | 'status'>) => void;
   onOpenAdmin: () => void;
+  onRequireLogin: (targetSection: PortalSection, sectionLabel: string) => void;
   onAdminQuickEdit?: (tab: 'members' | 'advisors' | 'finance' | 'notices' | 'projects' | 'eyanot' | 'expenses') => void;
 }
 
 export const UserPortal: React.FC<UserPortalProps> = ({
   data,
   role,
+  activeSection,
+  onSectionChange,
   permissionMessage,
   onDismissPermissionMessage,
   onSubmitDonation,
   onSubmitApplication,
   onOpenAdmin,
+  onRequireLogin,
   onAdminQuickEdit,
 }) => {
-  const [section, setSection] = useState<UserSection>('home');
+  const section = activeSection;
   const [memberSearch, setMemberSearch] = useState('');
   const [bloodGroupFilter, setBloodGroupFilter] = useState<'all' | BloodGroup>('all');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -134,6 +137,16 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
   const isAdmin = role === 'admin';
   const activeLogoSrc = data.logoUrl || DEFAULT_LOGO_URL;
+
+  const setSection = (target: UserSection) => {
+    const lockedLabel = VISITOR_LOCKED_SECTION_LABELS[target];
+    if (role === 'visitor' && lockedLabel) {
+      setMobileMenuOpen(false);
+      onRequireLogin(target, lockedLabel);
+      return;
+    }
+    onSectionChange(target);
+  };
 
   const totalEyanotCollected = useMemo(() => {
     let sum = 0;
@@ -418,8 +431,12 @@ export const UserPortal: React.FC<UserPortalProps> = ({
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-xs font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap shrink-0 shadow-xs"
             >
               <Lock className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{isAdmin ? 'অ্যাডমিন প্যানেল' : 'অ্যাডমিন লগইন'}</span>
-              <span className="inline sm:hidden">{isAdmin ? 'প্যানেল' : 'লগইন'}</span>
+              <span className="hidden sm:inline">
+                {isAdmin ? 'অ্যাডমিন প্যানেল' : role === 'user' ? 'ইউজার অ্যাকাউন্ট' : 'লগইন'}
+              </span>
+              <span className="inline sm:hidden">
+                {isAdmin ? 'প্যানেল' : role === 'user' ? 'ইউজার' : 'লগইন'}
+              </span>
             </button>
 
             {/* Mobile Hamburger Button */}
@@ -1396,7 +1413,37 @@ export const UserPortal: React.FC<UserPortalProps> = ({
           </section>
         )}
 
-        {section === 'eyanot' && (
+        {role === 'visitor' && VISITOR_LOCKED_SECTION_LABELS[section] && (
+          <section className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs space-y-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-800">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-slate-900">লগইন করুন</h1>
+              <p className="text-sm leading-relaxed text-slate-600">
+                <span className="font-semibold text-slate-900">
+                  {VISITOR_LOCKED_SECTION_LABELS[section]}
+                </span>{' '}
+                দেখার জন্য অনুগ্রহ করে ইউজার অথবা অ্যাডমিন অ্যাকাউন্ট দিয়ে লগইন করুন।
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  onRequireLogin(
+                    section,
+                    VISITOR_LOCKED_SECTION_LABELS[section] || 'হিসাব পেজ'
+                  )
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-800 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-900 transition-colors"
+              >
+                <Lock className="h-4 w-4" />
+                লগইন করুন
+              </button>
+            </div>
+          </section>
+        )}
+
+        {role !== 'visitor' && section === 'eyanot' && (
           <section className="mx-auto max-w-6xl px-6 py-10 space-y-5">
             {isAdmin && onAdminQuickEdit && (
               <div className="no-print flex justify-end">
@@ -1420,7 +1467,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
           </section>
         )}
 
-        {section === 'expenses' && (
+        {role !== 'visitor' && section === 'expenses' && (
           <section className="mx-auto max-w-6xl px-6 py-10 space-y-5">
             {isAdmin && onAdminQuickEdit && (
               <div className="no-print flex justify-end">
@@ -1493,7 +1540,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
           </section>
         )}
 
-        {section === 'finance' && (
+        {role !== 'visitor' && section === 'finance' && (
           <section className="mx-auto max-w-6xl px-6 py-10 space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>

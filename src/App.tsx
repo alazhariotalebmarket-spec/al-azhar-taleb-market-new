@@ -20,6 +20,9 @@ const AdminLoginPage = lazy(() =>
 const AdminPanel = lazy(() =>
   import('./components/AdminPanel').then((m) => ({ default: m.AdminPanel }))
 );
+const LoginModal = lazy(() =>
+  import('./components/LoginModal').then((m) => ({ default: m.LoginModal }))
+);
 import {
   AutoBackupSettings,
   BackupFrequency,
@@ -29,6 +32,7 @@ import {
   DRIVE_DOCUMENTS_FOLDER_NAME,
   MemberApplication,
   OrganizationData,
+  PortalSection,
   SavedDriveDocument,
   UserRole,
 } from './types';
@@ -43,14 +47,21 @@ const FREQUENCY_MS: Record<BackupFrequency, number> = {
 
 const ADMIN_ONLY_MESSAGE = 'শুধুমাত্র অ্যাডমিন এডিট করতে পারবেন';
 
+const LOCKED_VISITOR_SECTIONS = new Set<PortalSection>(['eyanot', 'expenses', 'finance']);
+
 export default function App() {
   const [view, setView] = useState<AppView>('user');
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [role, setRole] = useState<UserRole>('visitor');
+  const [portalSection, setPortalSection] = useState<PortalSection>('home');
+  const [loginModalState, setLoginModalState] = useState<{
+    open: boolean;
+    defaultTab: 'user' | 'admin';
+    lockedLabel?: string;
+    targetSection?: PortalSection;
+  }>({ open: false, defaultTab: 'user' });
   const [adminInitialTab, setAdminInitialTab] = useState<AdminTab>('overview');
   const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
   const [data, setData] = useState<OrganizationData>(() => loadOrganizationData());
-
-  const role: UserRole = isAdminLoggedIn ? 'admin' : 'user';
 
   const [driveConnected, setDriveConnected] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
@@ -862,11 +873,16 @@ export default function App() {
       <Suspense fallback={adminFallback}>
         <AdminLoginPage
           logoUrl={data.logoUrl}
-          onSuccess={() => {
-            setIsAdminLoggedIn(true);
+          initialTab="user"
+          onSuccess={(loggedInRole) => {
+            setRole(loggedInRole);
             setPermissionMessage(null);
-            setAdminInitialTab('overview');
-            setView('admin');
+            if (loggedInRole === 'admin') {
+              setAdminInitialTab('overview');
+              setView('admin');
+            } else {
+              setView('user');
+            }
           }}
           onBack={() => setView('user')}
         />
@@ -910,7 +926,10 @@ export default function App() {
           onMutateData={handleMutateData}
           onViewPublicPortal={() => setView('user')}
           onAdminLogout={() => {
-            setIsAdminLoggedIn(false);
+            setRole('visitor');
+            if (LOCKED_VISITOR_SECTIONS.has(portalSection)) {
+              setPortalSection('home');
+            }
             setView('user');
           }}
         />
@@ -919,26 +938,76 @@ export default function App() {
   }
 
   return (
-    <UserPortal
-      data={data}
-      role={role}
-      permissionMessage={permissionMessage}
-      onDismissPermissionMessage={() => setPermissionMessage(null)}
-      onSubmitDonation={handleSubmitDonation}
-      onSubmitApplication={handleSubmitApplication}
-      onOpenAdmin={() => {
-        if (role === 'admin') {
-          setAdminInitialTab('overview');
+    <>
+      <UserPortal
+        data={data}
+        role={role}
+        activeSection={portalSection}
+        onSectionChange={setPortalSection}
+        permissionMessage={permissionMessage}
+        onDismissPermissionMessage={() => setPermissionMessage(null)}
+        onSubmitDonation={handleSubmitDonation}
+        onSubmitApplication={handleSubmitApplication}
+        onOpenAdmin={() => {
+          if (role === 'admin') {
+            setAdminInitialTab('overview');
+            setView('admin');
+          } else {
+            setLoginModalState({
+              open: true,
+              defaultTab: role === 'user' ? 'admin' : 'user',
+            });
+          }
+        }}
+        onRequireLogin={(targetSection, sectionLabel) => {
+          setLoginModalState({
+            open: true,
+            defaultTab: 'user',
+            lockedLabel: sectionLabel,
+            targetSection,
+          });
+        }}
+        onAdminQuickEdit={(tab) => {
+          if (!requireAdminPermission()) return;
+          setAdminInitialTab(tab);
           setView('admin');
-        } else {
-          setView('login');
-        }
-      }}
-      onAdminQuickEdit={(tab) => {
-        if (!requireAdminPermission()) return;
-        setAdminInitialTab(tab);
-        setView('admin');
-      }}
-    />
+        }}
+      />
+
+      {loginModalState.open && (
+        <Suspense fallback={null}>
+          <LoginModal
+            open={loginModalState.open}
+            currentRole={role}
+            logoUrl={data.logoUrl}
+            defaultTab={loginModalState.defaultTab}
+            lockedSectionLabel={loginModalState.lockedLabel}
+            onLoginSuccess={(loggedInRole) => {
+              const target = loginModalState.targetSection;
+              setRole(loggedInRole);
+              setPermissionMessage(null);
+              setLoginModalState({ open: false, defaultTab: 'user' });
+              if (target) {
+                setPortalSection(target);
+                setView('user');
+              } else if (loggedInRole === 'admin') {
+                setAdminInitialTab('overview');
+                setView('admin');
+              } else {
+                setView('user');
+              }
+            }}
+            onLogout={() => {
+              setRole('visitor');
+              setLoginModalState({ open: false, defaultTab: 'user' });
+              if (LOCKED_VISITOR_SECTIONS.has(portalSection)) {
+                setPortalSection('home');
+              }
+            }}
+            onClose={() => setLoginModalState({ open: false, defaultTab: 'user' })}
+          />
+        </Suspense>
+      )}
+    </>
   );
 }

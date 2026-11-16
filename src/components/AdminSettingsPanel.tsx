@@ -7,8 +7,15 @@ import {
   KeyRound,
   RotateCcw,
   ShieldCheck,
+  UserCheck,
 } from 'lucide-react';
-import { ADMIN_EMAIL, changeAdminPassword } from '../services/adminAuth';
+import {
+  ADMIN_EMAIL,
+  USER_EMAIL,
+  changeAdminPassword,
+  changeUserPassword,
+  getUserPassword,
+} from '../services/adminAuth';
 import { DEFAULT_LOGO_URL, ORG_NAME } from '../types';
 import { OrgLogo } from './OrgLogo';
 
@@ -71,6 +78,11 @@ export const AdminSettingsPanel: React.FC<AdminSettingsPanelProps> = ({
   const [showPasswords, setShowPasswords] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
 
+  const [newUserPass, setNewUserPass] = useState('');
+  const [confirmUserPass, setConfirmUserPass] = useState('');
+  const [showUserPass, setShowUserPass] = useState(false);
+  const [userPassStatus, setUserPassStatus] = useState<{ ok: boolean; message: string } | null>(null);
+
   const activeLogoSrc = logoUrl || DEFAULT_LOGO_URL;
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +141,16 @@ export const AdminSettingsPanel: React.FC<AdminSettingsPanelProps> = ({
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    }
+  };
+
+  const handleUserPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = changeUserPassword(newUserPass, confirmUserPass);
+    setUserPassStatus(result);
+    if (result.ok) {
+      setNewUserPass('');
+      setConfirmUserPass('');
     }
   };
 
@@ -306,6 +328,99 @@ export const AdminSettingsPanel: React.FC<AdminSettingsPanelProps> = ({
           >
             <KeyRound className="h-4 w-4" />
             পাসওয়ার্ড পরিবর্তন করুন
+          </button>
+        </form>
+      </div>
+
+      {/* User Login Credentials & Password Card */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-2.5">
+            <UserCheck className="h-5 w-5 text-emerald-800" />
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">
+                ইউজার লগইন অ্যাকাউন্ট ও পাসওয়ার্ড
+              </h3>
+              <p className="text-xs text-slate-500">
+                ভিজিটররা হিসাব পেজ (এয়ানত শীট, মাসিক ব্যয়, আয়-ব্যয়) দেখতে এই ইউজার অ্যাকাউন্ট দিয়ে লগইন করবেন (শুধুমাত্র দেখার অনুমতি)
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowUserPass((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            {showUserPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {showUserPass ? 'লুকান' : 'পাসওয়ার্ড দেখুন'}
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm space-y-1">
+          <p className="text-slate-600">
+            ইউজার ইমেইল / আইডি:{' '}
+            <span className="font-mono-num font-semibold text-slate-900">{USER_EMAIL}</span>
+          </p>
+          <p className="text-slate-600">
+            বর্তমান ইউজার পাসওয়ার্ড:{' '}
+            <span className="font-mono-num font-semibold text-emerald-800">
+              {showUserPass ? getUserPassword() : '••••••••••'}
+            </span>
+          </p>
+        </div>
+
+        <form onSubmit={handleUserPasswordSubmit} className="mt-5 space-y-4 max-w-md">
+          <div>
+            <label htmlFor="new-user-password" className="block text-sm font-medium text-slate-700">
+              নতুন ইউজার পাসওয়ার্ড
+            </label>
+            <input
+              id="new-user-password"
+              type={showUserPass ? 'text' : 'password'}
+              value={newUserPass}
+              onChange={(e) => setNewUserPass(e.target.value)}
+              placeholder="কমপক্ষে ৪ অক্ষরের নতুন পাসওয়ার্ড"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirm-user-password" className="block text-sm font-medium text-slate-700">
+              নতুন ইউজার পাসওয়ার্ড নিশ্চিত করুন
+            </label>
+            <input
+              id="confirm-user-password"
+              type={showUserPass ? 'text' : 'password'}
+              value={confirmUserPass}
+              onChange={(e) => setConfirmUserPass(e.target.value)}
+              placeholder="নতুন পাসওয়ার্ড আবার লিখুন"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+              autoComplete="new-password"
+            />
+          </div>
+
+          {userPassStatus && (
+            <div
+              className={`flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm ${
+                userPassStatus.ok
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              }`}
+            >
+              {userPassStatus.ok && (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+              )}
+              <span className="font-medium">{userPassStatus.message}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap"
+          >
+            <KeyRound className="h-4 w-4" />
+            ইউজার পাসওয়ার্ড আপডেট করুন
           </button>
         </form>
       </div>

@@ -10,7 +10,19 @@ export const DEFAULT_LOGO_URL = defaultLogoAsset;
 export const HOME_BANNER_URL = homeBannerAsset;
 export const HOME_BANNER_MOBILE_URL = homeBannerMobileAsset;
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'visitor' | 'user' | 'admin';
+
+export type PortalSection =
+  | 'home'
+  | 'projects'
+  | 'members'
+  | 'eyanot'
+  | 'expenses'
+  | 'advisors'
+  | 'finance'
+  | 'notices'
+  | 'contact'
+  | 'about';
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as const;
 export type BloodGroup = (typeof BLOOD_GROUPS)[number];

@@ -1,21 +1,30 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react';
-import { ADMIN_EMAIL, verifyAdminLogin } from '../services/adminAuth';
+import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck, UserCheck } from 'lucide-react';
+import {
+  ADMIN_EMAIL,
+  USER_EMAIL,
+  verifyAdminLogin,
+  verifyUserLogin,
+} from '../services/adminAuth';
 import { DEFAULT_LOGO_URL, ORG_NAME, ORG_TAGLINE } from '../types';
 import { OrgLogo } from './OrgLogo';
 
 interface AdminLoginPageProps {
   logoUrl?: string;
-  onSuccess: () => void;
+  initialTab?: 'user' | 'admin';
+  onSuccess: (role: 'user' | 'admin') => void;
   onBack: () => void;
 }
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   logoUrl,
+  initialTab = 'user',
   onSuccess,
   onBack,
 }) => {
   const activeLogoSrc = logoUrl || DEFAULT_LOGO_URL;
+  const [activeTab, setActiveTab] = useState<'user' | 'admin'>(initialTab);
+  const [userIdentifier, setUserIdentifier] = useState(USER_EMAIL);
   const [email, setEmail] = useState(ADMIN_EMAIL);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,13 +32,27 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'user') {
+      if (!userIdentifier.trim() || !password) {
+        setError('অনুগ্রহ করে ইউজার ইমেইল/আইডি ও পাসওয়ার্ড লিখুন।');
+        return;
+      }
+      if (verifyUserLogin(userIdentifier, password)) {
+        setError('');
+        onSuccess('user');
+        return;
+      }
+      setError('ভুল ইউজার ইমেইল অথবা পাসওয়ার্ড। অনুগ্রহ করে সঠিক তথ্য দিন।');
+      return;
+    }
+
     if (!email.trim() || !password) {
       setError('অনুগ্রহ করে অ্যাডমিন ইমেইল ও পাসওয়ার্ড লিখুন।');
       return;
     }
     if (verifyAdminLogin(email, password)) {
       setError('');
-      onSuccess();
+      onSuccess('admin');
       return;
     }
     setError('ভুল অ্যাডমিন ইমেইল অথবা পাসওয়ার্ড। অনুগ্রহ করে সঠিক তথ্য দিন।');
@@ -38,14 +61,14 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-8 px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-3 text-left whitespace-nowrap shrink-0"
+            className="flex min-w-0 items-center gap-3 text-left"
           >
             <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />
-            <span className="font-display text-lg font-bold tracking-tight text-slate-900">
+            <span className="truncate font-display text-base sm:text-lg font-bold tracking-tight text-slate-900">
               {ORG_NAME}
             </span>
           </button>
@@ -61,29 +84,81 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 items-center px-6 py-12">
-        <div className="w-full rounded-xl border border-slate-200 bg-white p-8 shadow-xs">
+      <main className="mx-auto flex w-full max-w-md flex-1 items-center px-4 sm:px-6 py-10">
+        <div className="w-full rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs">
           <div className="flex flex-col items-center text-center">
             <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="standard" />
             <h1 className="mt-4 font-display text-2xl font-bold text-slate-900">{ORG_NAME}</h1>
-            <p className="mt-1 text-sm text-slate-500">অ্যাডমিন প্যানেল লগইন · {ORG_TAGLINE}</p>
+            <p className="mt-1 text-sm text-slate-500">পোর্টাল লগইন · {ORG_TAGLINE}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-            <div>
-              <label htmlFor="admin-email" className="block text-sm font-medium text-slate-700">
-                অ্যাডমিন ইমেইল
-              </label>
-              <input
-                id="admin-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
-                placeholder={ADMIN_EMAIL}
-                autoComplete="username"
-              />
-            </div>
+          <div className="mt-6 grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('user');
+                setPassword('');
+                setError('');
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition-colors ${
+                activeTab === 'user'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <UserCheck className="h-4 w-4 shrink-0" />
+              ইউজার লগইন
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('admin');
+                setPassword('');
+                setError('');
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition-colors ${
+                activeTab === 'admin'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              অ্যাডমিন লগইন
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {activeTab === 'user' ? (
+              <div>
+                <label htmlFor="user-email" className="block text-sm font-medium text-slate-700">
+                  ইউজার ইমেইল / আইডি
+                </label>
+                <input
+                  id="user-email"
+                  type="text"
+                  value={userIdentifier}
+                  onChange={(e) => setUserIdentifier(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+                  placeholder={USER_EMAIL}
+                  autoComplete="username"
+                />
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="admin-email" className="block text-sm font-medium text-slate-700">
+                  অ্যাডমিন ইমেইল
+                </label>
+                <input
+                  id="admin-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
+                  placeholder={ADMIN_EMAIL}
+                  autoComplete="username"
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="admin-password" className="block text-sm font-medium text-slate-700">
@@ -96,7 +171,11 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-3.5 pr-10 text-sm text-slate-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15"
-                  placeholder="আপনার অ্যাডমিন পাসওয়ার্ড লিখুন"
+                  placeholder={
+                    activeTab === 'user'
+                      ? 'আপনার ইউজার পাসওয়ার্ড লিখুন'
+                      : 'আপনার অ্যাডমিন পাসওয়ার্ড লিখুন'
+                  }
                   autoComplete="current-password"
                 />
                 <button
@@ -121,7 +200,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-900 whitespace-nowrap"
             >
               <Lock className="h-4 w-4" />
-              অ্যাডমিন প্যানেলে প্রবেশ করুন
+              {activeTab === 'user' ? 'ইউজার হিসেবে প্রবেশ করুন' : 'অ্যাডমিন প্যানেলে প্রবেশ করুন'}
             </button>
           </form>
         </div>
