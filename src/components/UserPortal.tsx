@@ -543,6 +543,50 @@ export const UserPortal: React.FC<UserPortalProps> = ({
         )}
       </header>
 
+      {/* Logged-in User / Admin Session Bar (not shown to default Visitors) */}
+      {role !== 'visitor' && (
+        <div className="no-print border-b border-emerald-200 bg-emerald-50/90">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2.5 px-4 sm:px-6 py-2 text-xs">
+            <div className="flex items-center gap-2 font-semibold text-emerald-950">
+              <span className="h-2 w-2 rounded-full bg-emerald-600" />
+              <span>
+                {isAdmin
+                  ? 'অ্যাডমিন প্যানেল সক্রিয় · সকল পেজ দেখা ও এডিট করার অনুমতি রয়েছে'
+                  : 'ইউজার প্যানেল সক্রিয় · সকল হিসাব পেজ দেখতে পারবেন'}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={onOpenAdmin}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3 py-1.5 font-semibold text-white hover:bg-emerald-900 transition-colors"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  অ্যাডমিন প্যানেল
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                ভিজিটর হিসেবে দেখুন
+              </button>
+              <button
+                type="button"
+                onClick={onSwitchAccount}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                অ্যাকাউন্ট বদলান
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Permission Guard Message (only shown if non-admin tries to trigger an edit/admin action) */}
       {permissionMessage && (
         <div className="mx-auto w-full max-w-6xl px-6 pt-5">

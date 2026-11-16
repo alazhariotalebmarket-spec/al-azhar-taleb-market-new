@@ -80,8 +80,23 @@ createRoot(document.getElementById('root')!).render(
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    const hadController = Boolean(navigator.serviceWorker.controller);
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) return;
+      try {
+        const key = 'al_azhar_sw_reloaded_v5';
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1');
+          window.location.reload();
+        }
+      } catch {
+        window.location.reload();
+      }
+    });
+
     void navigator.serviceWorker
-      .register('/sw.js')
+      .register('/sw.js', { updateViaCache: 'none' })
       .then((reg) => {
         void reg.update().catch(() => {});
       })
