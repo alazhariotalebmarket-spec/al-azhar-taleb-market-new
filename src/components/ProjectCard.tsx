@@ -15,7 +15,7 @@ interface ProjectCardProps {
   variant?: 'home' | 'page';
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({
+function ProjectCardComponent({
   project,
   isAdminView = false,
   canPrintPdf = false,
@@ -25,7 +25,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onPrintProject,
   onPrintDonor,
   variant = 'page',
-}) => {
+}: ProjectCardProps) {
   const showPdfButtons = !hideFinancials && Boolean(canPrintPdf || isAdminView);
   const hasLedger =
     !hideFinancials &&
@@ -405,4 +405,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       )}
     </div>
   );
-};
+}
+
+export const ProjectCard = React.memo(ProjectCardComponent);
