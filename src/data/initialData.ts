@@ -304,14 +304,15 @@ const HOME_EYANOT_NOTICE = {
 };
 
 export const CALENDAR_BANNER_PROJECT_ID = 'p-calendar-banner-2026';
+export const CALENDAR_BANNER_UPDATE_2026_KEY = 'p-calendar-banner-2026-v2';
 
 export const CALENDAR_BANNER_PROJECT_2026: WelfareProject = {
   id: CALENDAR_BANNER_PROJECT_ID,
   title: 'স্থায়ী ক্যালেন্ডার ও ব্যানার প্রকল্প',
   category: 'দাওয়াহ ও প্রকাশনা',
   description: 'নামাজের স্থায়ী ক্যালেন্ডার ও ব্যানার তৈরি ও বিতরণ সম্পন্ন হয়েছে।',
-  targetAmount: 3000,
-  raisedAmount: 3000,
+  targetAmount: 3200,
+  raisedAmount: 3200,
   beneficiaries: 0,
   startDate: '2026-11-14',
   status: 'সম্পন্ন',
@@ -329,13 +330,16 @@ export const CALENDAR_BANNER_PROJECT_2026: WelfareProject = {
     { name: 'আঃ রহিম মেহেদী', amount: 100 },
     { name: 'আঃ রহমান মাদবার', amount: 100 },
     { name: 'মোঃ জাহিদুল ইসলাম', amount: 100 },
+    { name: 'মোঃ রাকিবুল ইসলাম', amount: 100 },
+    { name: 'হাফেজ মোঃ ইমাম হোসাইন', amount: 100 },
   ],
   expenseList: [
     { name: 'নামাজের স্থায়ী ক্যালেন্ডার প্রিন্ট ও ব্যানার প্রিন্ট', amount: 2600 },
     { name: 'নামাজের স্থায়ী ক্যালেন্ডার বিতরণ গাড়ি ভাড়া', amount: 300 },
     { name: 'যাওয়ার গাড়ী ভাড়া বাবদ মাওঃ আহমাদুল্লাহ ভাইকে দেওয়া হয়েছে', amount: 100 },
+    { name: 'যাওয়ার গাড়ী ভাড়া বাবদ মাওঃ আহমাদুল্লাহ ভাইকে আরও দেওয়া হলো', amount: 100 },
   ],
-  note: 'যাওয়ার গাড়ী ভাড়া মাওঃ আহমাদুল্লাহ ভাই দিয়েছিলেন, তাকে ভাড়া বাবদ 100/- দেওয়া হয়েছে। তাকে আরো দেওয়া উচিৎ।\nআসার গাড়ি ভাড়া দিয়েছেন, জনাব মোঃ হারুন মাদবার।',
+  note: 'যাওয়ার গাড়ী ভাড়া মাওঃ আহমাদুল্লাহ ভাই দিয়েছিলেন, তাকে ভাড়া বাবদ প্রথমে 100/- এবং পরে আরও 100/- (মোট 200/-) দেওয়া হয়েছে।\nআসার গাড়ি ভাড়া দিয়েছেন, জনাব মোঃ হারুন মাদবার।',
 };
 
 export const DEFAULT_ORGANIZATION_DATA: OrganizationData = {
@@ -355,7 +359,7 @@ export const DEFAULT_ORGANIZATION_DATA: OrganizationData = {
   },
   backupHistory: [],
   driveDocuments: [],
-  seededKeys: [CALENDAR_BANNER_PROJECT_ID],
+  seededKeys: [CALENDAR_BANNER_PROJECT_ID, CALENDAR_BANNER_UPDATE_2026_KEY],
 };
 
 function mergeJuly2026EyanotSeed(data: OrganizationData): OrganizationData {
@@ -681,49 +685,85 @@ export function mergeCalendarBannerProjectSeed(
   try {
     const existingSeededKeys = Array.isArray(data.seededKeys) ? data.seededKeys : [];
     const currentProjects = Array.isArray(data.projects) ? data.projects : [];
-    const alreadyExists = currentProjects.some(
-      (p) =>
-        p.id === CALENDAR_BANNER_PROJECT_ID ||
-        p.title.trim() === CALENDAR_BANNER_PROJECT_2026.title
-    );
+    const matchesCalendarProject = (p: WelfareProject) =>
+      p.id === CALENDAR_BANNER_PROJECT_ID || p.title.trim() === CALENDAR_BANNER_PROJECT_2026.title;
 
-    const existingProject = currentProjects.find(
-      (p) =>
-        p.id === CALENDAR_BANNER_PROJECT_ID ||
-        p.title.trim() === CALENDAR_BANNER_PROJECT_2026.title
-    );
-
-    if (
-      existingSeededKeys.includes(CALENDAR_BANNER_PROJECT_ID) &&
-      alreadyExists &&
-      existingProject?.incomeList?.length &&
-      existingProject?.expenseList?.length
-    ) {
-      return { data, changed: false };
-    }
+    const existingProject = currentProjects.find(matchesCalendarProject);
+    const alreadyExists = Boolean(existingProject);
 
     if (existingSeededKeys.includes(CALENDAR_BANNER_PROJECT_ID) && !alreadyExists) {
       // Admin already seeded once and deliberately deleted it
       return { data, changed: false };
     }
 
+    const hasBaseSeed =
+      existingSeededKeys.includes(CALENDAR_BANNER_PROJECT_ID) &&
+      alreadyExists &&
+      Boolean(existingProject?.incomeList?.length) &&
+      Boolean(existingProject?.expenseList?.length);
+
+    const hasV2Update = existingSeededKeys.includes(CALENDAR_BANNER_UPDATE_2026_KEY);
+
+    if (hasBaseSeed && hasV2Update) {
+      return { data, changed: false };
+    }
+
+    const applyV2Entries = (proj: WelfareProject): WelfareProject => {
+      const incomeList = Array.isArray(proj.incomeList) ? [...proj.incomeList] : [];
+      const expenseList = Array.isArray(proj.expenseList) ? [...proj.expenseList] : [];
+
+      if (!incomeList.some((i) => i.name.includes('রাকিবুল ইসলাম'))) {
+        incomeList.push({ name: 'মোঃ রাকিবুল ইসলাম', amount: 100 });
+      }
+      if (!incomeList.some((i) => i.name.includes('ইমাম হোসাইন'))) {
+        incomeList.push({ name: 'হাফেজ মোঃ ইমাম হোসাইন', amount: 100 });
+      }
+      if (!expenseList.some((e) => e.name.includes('আহমাদুল্লাহ ভাইকে আরও'))) {
+        expenseList.push({
+          name: 'যাওয়ার গাড়ী ভাড়া বাবদ মাওঃ আহমাদুল্লাহ ভাইকে আরও দেওয়া হলো',
+          amount: 100,
+        });
+      }
+
+      const totalInc = incomeList.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      const updatedNote =
+        proj.note && proj.note.includes('তাকে আরো দেওয়া উচিৎ।')
+          ? CALENDAR_BANNER_PROJECT_2026.note
+          : proj.note || CALENDAR_BANNER_PROJECT_2026.note;
+
+      return {
+        ...proj,
+        targetAmount: Math.max(proj.targetAmount || 0, totalInc),
+        raisedAmount: Math.max(proj.raisedAmount || 0, totalInc),
+        incomeList,
+        expenseList,
+        note: updatedNote,
+      };
+    };
+
     const nextProjects = alreadyExists
-      ? currentProjects.map((p) =>
-          p.id === CALENDAR_BANNER_PROJECT_ID || p.title.trim() === CALENDAR_BANNER_PROJECT_2026.title
-            ? {
-                ...CALENDAR_BANNER_PROJECT_2026,
-                ...p,
-                incomeList: p.incomeList?.length ? p.incomeList : CALENDAR_BANNER_PROJECT_2026.incomeList,
-                expenseList: p.expenseList?.length ? p.expenseList : CALENDAR_BANNER_PROJECT_2026.expenseList,
-                note: p.note || CALENDAR_BANNER_PROJECT_2026.note,
-              }
-            : p
-        )
+      ? currentProjects.map((p) => {
+          if (!matchesCalendarProject(p)) return p;
+          const baseMerged: WelfareProject = {
+            ...CALENDAR_BANNER_PROJECT_2026,
+            ...p,
+            incomeList: p.incomeList?.length ? p.incomeList : CALENDAR_BANNER_PROJECT_2026.incomeList,
+            expenseList: p.expenseList?.length
+              ? p.expenseList
+              : CALENDAR_BANNER_PROJECT_2026.expenseList,
+            note: p.note || CALENDAR_BANNER_PROJECT_2026.note,
+          };
+          return hasV2Update ? baseMerged : applyV2Entries(baseMerged);
+        })
       : [CALENDAR_BANNER_PROJECT_2026, ...currentProjects];
 
-    const nextSeededKeys = existingSeededKeys.includes(CALENDAR_BANNER_PROJECT_ID)
-      ? existingSeededKeys
-      : [...existingSeededKeys, CALENDAR_BANNER_PROJECT_ID];
+    const nextSeededKeys = [...existingSeededKeys];
+    if (!nextSeededKeys.includes(CALENDAR_BANNER_PROJECT_ID)) {
+      nextSeededKeys.push(CALENDAR_BANNER_PROJECT_ID);
+    }
+    if (!nextSeededKeys.includes(CALENDAR_BANNER_UPDATE_2026_KEY)) {
+      nextSeededKeys.push(CALENDAR_BANNER_UPDATE_2026_KEY);
+    }
 
     return {
       data: {
