@@ -57,18 +57,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </div>
         </div>
 
-        <div className="relative overflow-hidden p-6 sm:p-7 space-y-5">
-          {/* Centered Transparent Organization Logo Watermark */}
+        <div className="relative overflow-hidden p-6 sm:p-7">
+          {/* Centered Transparent Organization Logo Watermark (strictly behind text) */}
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+            className="pointer-events-none select-none absolute inset-0 z-0 flex items-center justify-center"
           >
             <img
               src={activeLogoSrc}
               alt=""
-              className="h-64 w-64 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+              className="w-[74%] max-w-[340px] aspect-square rounded-full object-contain opacity-[0.14] mix-blend-multiply"
             />
           </div>
+          <div className="relative z-10 space-y-5">
           {/* Institutional Header */}
           <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
             <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />
@@ -130,6 +131,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="grid grid-cols-2 gap-6 pt-6 text-center text-xs text-slate-500">
             <div className="border-t border-slate-300 pt-2">কোষাধ্যক্ষ / হিসাবরক্ষক</div>
             <div className="border-t border-slate-300 pt-2">সভাপতি / সাধারণ সম্পাদক</div>
+          </div>
           </div>
         </div>
       </div>

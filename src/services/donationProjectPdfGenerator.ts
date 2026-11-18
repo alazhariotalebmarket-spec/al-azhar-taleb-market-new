@@ -253,15 +253,145 @@ async function renderDonationProjectCanvas(
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, pageWidth, pageHeight);
 
-  // Top emerald accent bar
+  // Pre-compute layout coordinates
+  const headerY = 48;
+  const badgeY = headerY + 148;
+  const badgeW = 420;
+  const badgeH = 50;
+  const badgeX = (pageWidth - badgeW) / 2;
+  const metaY = badgeY + 70;
+  const tableStartY = metaY + 66;
+
+  const detailRows: { label: string; value: string; highlight?: boolean }[] = [
+    { label: 'প্রকল্পের নাম', value: payload.projectName },
+    { label: 'দাতার নাম', value: payload.donorName },
+    { label: 'টাকার পরিমাণ', value: formatTaka(payload.amount), highlight: true },
+    { label: 'তারিখ', value: payload.date },
+  ];
+  if (payload.paymentInfo) {
+    detailRows.push({ label: 'পেমেন্ট মাধ্যম', value: payload.paymentInfo });
+  }
+  if (payload.statusLabel) {
+    detailRows.push({ label: 'অবস্থা / স্ট্যাটাস', value: payload.statusLabel });
+  }
+
+  const rowH = 50;
+  const tableH = detailRows.length * rowH;
+  const cardsY = tableStartY + tableH + 22;
+  const cardGap = 18;
+  const cardW = (contentWidth - cardGap * 2) / 3;
+  const cardH = 88;
+  let afterCardsY = cardsY + cardH + 16;
+
+  const orgSummaryY = afterCardsY;
+  if (payload.orgSummary) {
+    afterCardsY += 54;
+  }
+
+  const hasIncomeItems = Boolean(payload.incomeList && payload.incomeList.length > 0);
+  const hasExpenseItems = Boolean(payload.expenseList && payload.expenseList.length > 0);
+  const colGap = 20;
+  const colW = hasIncomeItems && hasExpenseItems ? (contentWidth - colGap) / 2 : contentWidth;
+  const maxListBottom = pageHeight - 270;
+  const availableH = Math.max(180, maxListBottom - afterCardsY);
+  const maxItems = Math.max(
+    payload.incomeList?.length || 0,
+    payload.expenseList?.length || 0
+  );
+  const itemRowH =
+    maxItems > 0 ? Math.min(36, Math.max(24, Math.floor((availableH - 76) / maxItems))) : 32;
+
+  const summaryCards = [
+    {
+      label: 'মোট আয়',
+      value: formatTaka(payload.totalIncome),
+      bg: '#ecfdf5',
+      border: '#a7f3d0',
+      labelColor: '#047857',
+      valColor: '#065f46',
+    },
+    {
+      label: 'মোট ব্যয়',
+      value: formatTaka(payload.totalExpense),
+      bg: '#fef2f2',
+      border: '#fecaca',
+      labelColor: '#b91c1c',
+      valColor: '#991b1b',
+    },
+    {
+      label: 'বর্তমান ব্যালেন্স',
+      value: formatTaka(payload.currentBalance),
+      bg: '#eff6ff',
+      border: '#bfdbfe',
+      labelColor: '#1d4ed8',
+      valColor: '#1e3a8a',
+    },
+  ];
+
+  // Layer 1: Background fills for badges, strips, table label column, cards & notes
+  ctx.fillStyle = '#ecfdf5';
+  ctx.beginPath();
+  ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10);
+  ctx.fill();
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.roundRect(marginX, metaY, contentWidth, 44, 8);
+  ctx.fill();
+
+  detailRows.forEach((_, idx) => {
+    const ry = tableStartY + idx * rowH;
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(marginX + 1, ry + 1, 250, rowH - 2);
+  });
+
+  summaryCards.forEach((c, idx) => {
+    const cx = marginX + idx * (cardW + cardGap);
+    ctx.fillStyle = c.bg;
+    ctx.beginPath();
+    ctx.roundRect(cx, cardsY, cardW, cardH, 10);
+    ctx.fill();
+  });
+
+  if (payload.orgSummary) {
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.roundRect(marginX, orgSummaryY, contentWidth, 38, 8);
+    ctx.fill();
+  }
+
+  if (hasIncomeItems && payload.incomeList) {
+    const totY = afterCardsY + 38 + payload.incomeList.length * itemRowH;
+    ctx.fillStyle = '#ecfdf5';
+    ctx.beginPath();
+    ctx.roundRect(marginX + 1, totY, colW - 2, 37, [0, 0, 9, 9]);
+    ctx.fill();
+  }
+
+  if (hasExpenseItems && payload.expenseList) {
+    const expX = hasIncomeItems ? marginX + colW + colGap : marginX;
+    const totY = afterCardsY + 38 + payload.expenseList.length * itemRowH;
+    ctx.fillStyle = '#fef2f2';
+    ctx.beginPath();
+    ctx.roundRect(expX + 1, totY, colW - 2, 37, [0, 0, 9, 9]);
+    ctx.fill();
+  } else if (!hasIncomeItems && payload.note) {
+    ctx.fillStyle = '#fafaf9';
+    ctx.beginPath();
+    ctx.roundRect(marginX, afterCardsY, contentWidth, 120, 10);
+    ctx.fill();
+  }
+
+  // Layer 2: Mandatory large centered organization logo watermark (strictly BEHIND all text)
+  const activeLogo = logoUrl || ORG_WATERMARK_LOGO_FALLBACK;
+  const loadedLogo = await loadCachedLogoImage(activeLogo);
+  drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo, 0.14);
+
+  // Layer 3: All borders, accent bars, headers, text, tables, and signatures ON TOP
   ctx.fillStyle = '#065f46';
   ctx.fillRect(0, 0, pageWidth, 18);
 
   // 1. Org Header (Logo + Name + Tagline + Address)
-  const activeLogo = logoUrl || ORG_WATERMARK_LOGO_FALLBACK;
-  const loadedLogo = await loadCachedLogoImage(activeLogo);
-
-  const headerY = 48;
   const logoSize = 96;
   const logoX = marginX;
   const logoY = headerY + 4;
@@ -328,18 +458,11 @@ async function renderDonationProjectCanvas(
   ctx.lineTo(marginX + 210, headerY + 125);
   ctx.stroke();
 
-  // 2. Document Title Badge
-  const badgeY = headerY + 148;
-  const badgeW = 420;
-  const badgeH = 50;
-  const badgeX = (pageWidth - badgeW) / 2;
-
-  ctx.fillStyle = '#ecfdf5';
+  // 2. Document Title Badge border & text
   ctx.strokeStyle = '#059669';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10);
-  ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = '#065f46';
@@ -348,14 +471,11 @@ async function renderDonationProjectCanvas(
   ctx.fillText(payload.documentTitle, pageWidth / 2, badgeY + 34);
   ctx.textAlign = 'left';
 
-  // 3. Meta Strip
-  const metaY = badgeY + 70;
-  ctx.fillStyle = '#f8fafc';
+  // 3. Meta Strip border & text
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.roundRect(marginX, metaY, contentWidth, 44, 8);
-  ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = '#334155';
@@ -371,35 +491,15 @@ async function renderDonationProjectCanvas(
   ctx.fillText(`তারিখ: ${payload.date}`, pageWidth - marginX - 18, metaY + 28);
   ctx.textAlign = 'left';
 
-  // 4. Core Required Fields Box (Project Name, Donor Name, Amount, Date)
-  let curY = metaY + 66;
-  const detailRows: { label: string; value: string; highlight?: boolean }[] = [
-    { label: 'প্রকল্পের নাম', value: payload.projectName },
-    { label: 'দাতার নাম', value: payload.donorName },
-    { label: 'টাকার পরিমাণ', value: formatTaka(payload.amount), highlight: true },
-    { label: 'তারিখ', value: payload.date },
-  ];
-
-  if (payload.paymentInfo) {
-    detailRows.push({ label: 'পেমেন্ট মাধ্যম', value: payload.paymentInfo });
-  }
-  if (payload.statusLabel) {
-    detailRows.push({ label: 'অবস্থা / স্ট্যাটাস', value: payload.statusLabel });
-  }
-
-  const rowH = 50;
-  const tableH = detailRows.length * rowH;
-
-  ctx.fillStyle = '#ffffff';
+  // 4. Core Required Fields Box borders & text
   ctx.strokeStyle = '#cbd5e1';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.roundRect(marginX, curY, contentWidth, tableH, 10);
-  ctx.fill();
+  ctx.roundRect(marginX, tableStartY, contentWidth, tableH, 10);
   ctx.stroke();
 
   detailRows.forEach((row, idx) => {
-    const ry = curY + idx * rowH;
+    const ry = tableStartY + idx * rowH;
     if (idx > 0) {
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1;
@@ -408,10 +508,6 @@ async function renderDonationProjectCanvas(
       ctx.lineTo(marginX + contentWidth, ry);
       ctx.stroke();
     }
-
-    // Left label column background
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(marginX + 1, ry + 1, 250, rowH - 2);
 
     ctx.strokeStyle = '#e2e8f0';
     ctx.beginPath();
@@ -432,69 +528,30 @@ async function renderDonationProjectCanvas(
     ctx.fillText(valueLines[0] || row.value, marginX + 272, ry + 32);
   });
 
-  curY += tableH + 22;
-
-  // 5. Financial Totals Cards: মোট আয়, মোট ব্যয়, বর্তমান ব্যালেন্স
-  const cardGap = 18;
-  const cardW = (contentWidth - cardGap * 2) / 3;
-  const cardH = 88;
-
-  const summaryCards = [
-    {
-      label: 'মোট আয়',
-      value: formatTaka(payload.totalIncome),
-      bg: '#ecfdf5',
-      border: '#a7f3d0',
-      labelColor: '#047857',
-      valColor: '#065f46',
-    },
-    {
-      label: 'মোট ব্যয়',
-      value: formatTaka(payload.totalExpense),
-      bg: '#fef2f2',
-      border: '#fecaca',
-      labelColor: '#b91c1c',
-      valColor: '#991b1b',
-    },
-    {
-      label: 'বর্তমান ব্যালেন্স',
-      value: formatTaka(payload.currentBalance),
-      bg: '#eff6ff',
-      border: '#bfdbfe',
-      labelColor: '#1d4ed8',
-      valColor: '#1e3a8a',
-    },
-  ];
-
+  // 5. Financial Totals Cards borders & text
   summaryCards.forEach((c, idx) => {
     const cx = marginX + idx * (cardW + cardGap);
-    ctx.fillStyle = c.bg;
     ctx.strokeStyle = c.border;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(cx, curY, cardW, cardH, 10);
-    ctx.fill();
+    ctx.roundRect(cx, cardsY, cardW, cardH, 10);
     ctx.stroke();
 
     ctx.fillStyle = c.labelColor;
     ctx.font = '700 17px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-    ctx.fillText(c.label, cx + 18, curY + 32);
+    ctx.fillText(c.label, cx + 18, cardsY + 32);
 
     ctx.fillStyle = c.valColor;
     ctx.font = '700 26px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-    ctx.fillText(c.value, cx + 18, curY + 68);
+    ctx.fillText(c.value, cx + 18, cardsY + 68);
   });
 
-  curY += cardH + 16;
-
-  // Optional Org Overall Summary Strip
+  // Optional Org Overall Summary Strip border & text
   if (payload.orgSummary) {
-    ctx.fillStyle = '#f8fafc';
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(marginX, curY, contentWidth, 38, 8);
-    ctx.fill();
+    ctx.roundRect(marginX, orgSummaryY, contentWidth, 38, 8);
     ctx.stroke();
 
     ctx.fillStyle = '#334155';
@@ -502,58 +559,40 @@ async function renderDonationProjectCanvas(
     ctx.fillText(
       `সংস্থার সার্বিক তহবিল — মোট আয়: ${formatTaka(payload.orgSummary.totalIncome)}   |   মোট ব্যয়: ${formatTaka(payload.orgSummary.totalExpense)}   |   বর্তমান ব্যালেন্স: ${formatTaka(payload.orgSummary.netBalance)}`,
       marginX + 16,
-      curY + 24
+      orgSummaryY + 24
     );
-    curY += 54;
   }
 
-  // 6. Project Donor & Expense Breakdown (for Project Reports)
-  const hasIncomeItems = Boolean(payload.incomeList && payload.incomeList.length > 0);
-  const hasExpenseItems = Boolean(payload.expenseList && payload.expenseList.length > 0);
-
+  // 6. Project Donor & Expense Breakdown borders & text
   if (hasIncomeItems || hasExpenseItems) {
-    const colGap = 20;
-    const colW = hasIncomeItems && hasExpenseItems ? (contentWidth - colGap) / 2 : contentWidth;
-    const maxListBottom = pageHeight - 270;
-    const availableH = Math.max(180, maxListBottom - curY);
-    const maxItems = Math.max(
-      payload.incomeList?.length || 0,
-      payload.expenseList?.length || 0
-    );
-    const itemRowH = maxItems > 0 ? Math.min(36, Math.max(24, Math.floor((availableH - 76) / maxItems))) : 32;
-
-    const drawLedgerBox = (
+    const drawLedgerForeground = (
       x: number,
       w: number,
       title: string,
       headerBg: string,
       borderColor: string,
-      totalBg: string,
       totalText: string,
       items: ProjectLedgerItem[]
     ) => {
       const boxH = 38 + items.length * itemRowH + 38;
-      ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = borderColor;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(x, curY, w, boxH, 10);
-      ctx.fill();
+      ctx.roundRect(x, afterCardsY, w, boxH, 10);
       ctx.stroke();
 
-      // Header
       ctx.fillStyle = headerBg;
       ctx.beginPath();
-      ctx.roundRect(x, curY, w, 38, [10, 10, 0, 0]);
+      ctx.roundRect(x, afterCardsY, w, 38, [10, 10, 0, 0]);
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '700 16px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-      ctx.fillText(title, x + 14, curY + 25);
+      ctx.fillText(title, x + 14, afterCardsY + 25);
 
       ctx.font = '500 14px "Noto Sans Bengali", sans-serif';
       items.forEach((item, i) => {
-        const iy = curY + 38 + i * itemRowH;
+        const iy = afterCardsY + 38 + i * itemRowH;
         if (i > 0) {
           ctx.strokeStyle = '#f1f5f9';
           ctx.lineWidth = 1;
@@ -574,77 +613,56 @@ async function renderDonationProjectCanvas(
         ctx.textAlign = 'left';
       });
 
-      const totY = curY + 38 + items.length * itemRowH;
-      ctx.fillStyle = totalBg;
-      ctx.beginPath();
-      ctx.roundRect(x + 1, totY, w - 2, 37, [0, 0, 9, 9]);
-      ctx.fill();
-
+      const totY = afterCardsY + 38 + items.length * itemRowH;
       ctx.fillStyle = '#0f172a';
       ctx.font = '700 15px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
       ctx.fillText('সর্বমোট', x + 14, totY + 24);
       ctx.textAlign = 'right';
       ctx.fillText(totalText, x + w - 14, totY + 24);
       ctx.textAlign = 'left';
-
-      return boxH;
     };
 
-    let drawnH = 0;
     if (hasIncomeItems && payload.incomeList) {
       const incTotal = payload.incomeList.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-      drawnH = Math.max(
-        drawnH,
-        drawLedgerBox(
-          marginX,
-          colW,
-          `আয় / দাতাবৃন্দের তালিকা (${payload.incomeList.length} জন)`,
-          '#065f46',
-          '#a7f3d0',
-          '#ecfdf5',
-          `${incTotal}/- টাকা`,
-          payload.incomeList
-        )
+      drawLedgerForeground(
+        marginX,
+        colW,
+        `আয় / দাতাবৃন্দের তালিকা (${payload.incomeList.length} জন)`,
+        '#065f46',
+        '#a7f3d0',
+        `${incTotal}/- টাকা`,
+        payload.incomeList
       );
     }
     if (hasExpenseItems && payload.expenseList) {
       const expTotal = payload.expenseList.reduce((s, x) => s + (Number(x.amount) || 0), 0);
       const expX = hasIncomeItems ? marginX + colW + colGap : marginX;
-      drawnH = Math.max(
-        drawnH,
-        drawLedgerBox(
-          expX,
-          colW,
-          `ব্যয়ের খাতসমূহ (${payload.expenseList.length}টি)`,
-          '#1e293b',
-          '#fecaca',
-          '#fef2f2',
-          `${expTotal}/- টাকা`,
-          payload.expenseList
-        )
+      drawLedgerForeground(
+        expX,
+        colW,
+        `ব্যয়ের খাতসমূহ (${payload.expenseList.length}টি)`,
+        '#1e293b',
+        '#fecaca',
+        `${expTotal}/- টাকা`,
+        payload.expenseList
       );
     }
-
-    curY += drawnH + 18;
   } else if (payload.note) {
-    // Note Card for single donor/donation receipt
-    ctx.fillStyle = '#fafaf9';
     ctx.strokeStyle = '#e7e5e4';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(marginX, curY, contentWidth, 120, 10);
-    ctx.fill();
+    ctx.roundRect(marginX, afterCardsY, contentWidth, 120, 10);
     ctx.stroke();
 
     ctx.fillStyle = '#475569';
     ctx.font = '700 16px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-    ctx.fillText('বিবরণ / নোট:', marginX + 18, curY + 30);
+    ctx.fillText('বিবরণ / নোট:', marginX + 18, afterCardsY + 30);
 
     ctx.fillStyle = '#1e293b';
     ctx.font = '400 16px "Noto Sans Bengali", sans-serif';
     const noteLines = getWrappedLines(ctx, payload.note, contentWidth - 36);
     noteLines.slice(0, 3).forEach((line, idx) => {
-      ctx.fillText(line, marginX + 18, curY + 60 + idx * 24);
+      ctx.fillText(line, marginX + 18, afterCardsY + 60 + idx * 24);
     });
   }
 
@@ -698,9 +716,6 @@ async function renderDonationProjectCanvas(
 
   ctx.fillStyle = '#065f46';
   ctx.fillRect(0, pageHeight - 14, pageWidth, 14);
-
-  // Centered subtle organization logo watermark
-  drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo);
 
   return canvas;
 }

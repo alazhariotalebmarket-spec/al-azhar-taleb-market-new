@@ -127,7 +127,38 @@ async function renderReportToCanvases(options: {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pageWidth, pageHeight);
 
-    // Top emerald institutional bar
+    const tableY = pageIndex === 0 ? firstPageStartY : nextPageStartY;
+
+    // Layer 1: Background fills for summary cards and alternating table rows
+    if (pageIndex === 0 && options.summaryItems.length > 0) {
+      const summaryCount = options.summaryItems.length;
+      const boxGap = 20;
+      const boxW = (contentWidth - boxGap * (summaryCount - 1)) / summaryCount;
+      options.summaryItems.forEach((_, idx) => {
+        const bx = marginX + idx * (boxW + boxGap);
+        const by = 224;
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(bx, by, boxW, 118);
+      });
+    }
+
+    if (pageRows.length === 0) {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(marginX, tableY + headerHeight, contentWidth, 80);
+    } else {
+      pageRows.forEach((_, rIdx) => {
+        if (rIdx % 2 === 1) {
+          const ry = tableY + headerHeight + rIdx * rowHeight;
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(marginX, ry, contentWidth, rowHeight);
+        }
+      });
+    }
+
+    // Layer 2: Mandatory large centered organization logo watermark (strictly BEHIND text)
+    drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo, 0.14);
+
+    // Layer 3: All borders, headers, table headers, cell text, and footer ON TOP
     ctx.fillStyle = '#065f46';
     ctx.fillRect(0, 0, pageWidth, 16);
 
@@ -153,7 +184,7 @@ async function renderReportToCanvases(options: {
       ctx.lineTo(pageWidth - marginX, 200);
       ctx.stroke();
 
-      // Summary grid
+      // Summary grid borders & text
       const summaryCount = options.summaryItems.length;
       if (summaryCount > 0) {
         const boxGap = 20;
@@ -161,10 +192,8 @@ async function renderReportToCanvases(options: {
         options.summaryItems.forEach((item, idx) => {
           const bx = marginX + idx * (boxW + boxGap);
           const by = 224;
-          ctx.fillStyle = '#f8fafc';
           ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 1.5;
-          ctx.fillRect(bx, by, boxW, 118);
           ctx.strokeRect(bx, by, boxW, 118);
 
           ctx.fillStyle = '#475569';
@@ -193,8 +222,6 @@ async function renderReportToCanvases(options: {
       ctx.stroke();
     }
 
-    const tableY = pageIndex === 0 ? firstPageStartY : nextPageStartY;
-
     // Table header
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(marginX, tableY, contentWidth, headerHeight);
@@ -207,10 +234,8 @@ async function renderReportToCanvases(options: {
       colX += col.width;
     });
 
-    // Table rows
+    // Table rows borders & text
     if (pageRows.length === 0) {
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(marginX, tableY + headerHeight, contentWidth, 80);
       ctx.strokeStyle = '#e2e8f0';
       ctx.strokeRect(marginX, tableY + headerHeight, contentWidth, 80);
       ctx.fillStyle = '#64748b';
@@ -219,9 +244,6 @@ async function renderReportToCanvases(options: {
     } else {
       pageRows.forEach((row, rIdx) => {
         const ry = tableY + headerHeight + rIdx * rowHeight;
-        ctx.fillStyle = rIdx % 2 === 0 ? '#ffffff' : '#f8fafc';
-        ctx.fillRect(marginX, ry, contentWidth, rowHeight);
-
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -259,9 +281,6 @@ async function renderReportToCanvases(options: {
     ctx.textAlign = 'right';
     ctx.fillText(`পৃষ্ঠা ${pageIndex + 1} / ${totalPages}`, pageWidth - marginX, pageHeight - 40);
     ctx.textAlign = 'left';
-
-    // Centered light transparent logo watermark on every page
-    drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo);
 
     canvases.push(canvas);
   });

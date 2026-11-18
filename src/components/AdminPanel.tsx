@@ -752,7 +752,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       setDownloadingNoticeId(notice.id);
       const { generateNoticePdfBlob } = await import('../services/noticePdfGenerator');
-      const { blob, fileName } = await generateNoticePdfBlob(notice, activeLogoSrc);
+      const { blob, fileName } = await generateNoticePdfBlob(notice, data.logoUrl);
       triggerBlobDownload(blob, fileName);
     } catch (err) {
       console.error('Failed to generate notice PDF:', err);
@@ -765,7 +765,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       setDownloadingNoticeImageId(notice.id);
       const { generateNoticeImageBlob } = await import('../services/noticePdfGenerator');
-      const { blob, fileName } = await generateNoticeImageBlob(notice, activeLogoSrc);
+      const { blob, fileName } = await generateNoticeImageBlob(notice, data.logoUrl);
       triggerBlobDownload(blob, fileName);
     } catch (err) {
       console.error('Failed to generate notice image:', err);
@@ -780,7 +780,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const { generateDonationProjectImageBlob } = await import(
         '../services/donationProjectPdfGenerator'
       );
-      const { blob, fileName } = await generateDonationProjectImageBlob(payload, activeLogoSrc);
+      const { blob, fileName } = await generateDonationProjectImageBlob(payload, data.logoUrl);
       triggerBlobDownload(blob, fileName);
     } catch (err) {
       console.error('Failed to generate document image:', err);

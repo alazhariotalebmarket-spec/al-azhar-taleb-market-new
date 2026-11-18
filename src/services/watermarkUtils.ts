@@ -3,34 +3,86 @@ export const ORG_WATERMARK_LOGO_FALLBACK =
 
 const imageLoadCache = new Map<string, Promise<HTMLImageElement | null>>();
 
-function loadSingleImage(src: string): Promise<HTMLImageElement | null> {
-  const existing = imageLoadCache.get(src);
-  if (existing) return existing;
+function shouldUseAnonymousCors(src: string): boolean {
+  if (src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('/')) {
+    return false;
+  }
+  try {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      const parsed = new URL(src, window.location.origin);
+      return parsed.origin !== window.location.origin;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
 
-  const promise = new Promise<HTMLImageElement | null>((resolve) => {
+function loadViaImageElement(src: string, useCors: boolean): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
     try {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      if (useCors) {
+        img.crossOrigin = 'anonymous';
+      }
       let settled = false;
       const done = (result: HTMLImageElement | null) => {
         if (settled) return;
         settled = true;
-        if (!result) imageLoadCache.delete(src);
         resolve(result);
       };
-      img.onload = () => done(img);
+      img.onload = () => done(img.naturalWidth > 0 ? img : null);
       img.onerror = () => done(null);
       img.src = src;
       if (img.complete && img.naturalWidth > 0) {
         done(img);
         return;
       }
-      setTimeout(() => done(null), 1500);
+      setTimeout(() => done(null), 4000);
     } catch {
-      imageLoadCache.delete(src);
       resolve(null);
     }
   });
+}
+
+async function loadViaFetchBlob(src: string): Promise<HTMLImageElement | null> {
+  if (typeof fetch !== 'function' || src.startsWith('data:') || src.startsWith('blob:')) {
+    return null;
+  }
+  try {
+    const res = await fetch(src, { credentials: 'same-origin' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const img = await loadViaImageElement(objectUrl, false);
+    if (!img) {
+      URL.revokeObjectURL(objectUrl);
+      return null;
+    }
+    return img;
+  } catch {
+    return null;
+  }
+}
+
+function loadSingleImage(src: string): Promise<HTMLImageElement | null> {
+  const existing = imageLoadCache.get(src);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const useCors = shouldUseAnonymousCors(src);
+    let img = await loadViaImageElement(src, useCors);
+    if (!img && useCors) {
+      img = await loadViaImageElement(src, false);
+    }
+    if (!img) {
+      img = await loadViaFetchBlob(src);
+    }
+    if (!img) {
+      imageLoadCache.delete(src);
+    }
+    return img;
+  })();
 
   imageLoadCache.set(src, promise);
   return promise;
@@ -48,15 +100,20 @@ export async function loadCachedLogoImage(src?: string): Promise<HTMLImageElemen
   return null;
 }
 
+/**
+ * Draws a large, centered, subtle circular logo watermark (10-15% opacity).
+ * Call this AFTER drawing background/card fills and BEFORE drawing text and borders
+ * so the watermark stays strictly behind all document text.
+ */
 export function drawCenteredLogoWatermark(
   ctx: CanvasRenderingContext2D,
   pageWidth: number,
   pageHeight: number,
   logoImg: HTMLImageElement | null,
-  alpha = 0.11
+  alpha = 0.14
 ): void {
   if (!logoImg) return;
-  const diameter = Math.round(Math.min(pageWidth, pageHeight) * 0.44);
+  const diameter = Math.round(Math.min(pageWidth * 0.72, pageHeight * 0.56));
   const cx = pageWidth / 2;
   const cy = pageHeight / 2;
   const x = cx - diameter / 2;

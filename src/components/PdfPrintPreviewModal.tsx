@@ -113,18 +113,19 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
         </div>
 
         {/* Printable Document Body */}
-        <div className="relative overflow-hidden p-6 sm:p-8 space-y-6">
-          {/* Centered Transparent Organization Logo Watermark */}
+        <div className="relative overflow-hidden p-6 sm:p-8">
+          {/* Centered Transparent Organization Logo Watermark (strictly behind text) */}
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+            className="pointer-events-none select-none absolute inset-0 z-0 flex items-center justify-center"
           >
             <img
               src={activeLogoSrc}
               alt=""
-              className="h-72 w-72 sm:h-88 sm:w-88 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+              className="w-[72%] max-w-[440px] aspect-square rounded-full object-contain opacity-[0.14] mix-blend-multiply"
             />
           </div>
+          <div className="relative z-10 space-y-6">
           {/* Organization Header with Logo */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-emerald-800 pb-4">
             <div className="flex items-center gap-4">
@@ -140,13 +141,13 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
               </div>
             </div>
 
-            <div className="self-start sm:self-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-900">
+            <div className="self-start sm:self-center rounded-lg border border-emerald-200 bg-emerald-50/75 px-3 py-1.5 text-xs font-bold text-emerald-900">
               {payload.documentTitle}
             </div>
           </div>
 
           {/* Reference & Date Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-2.5 text-xs">
             <div>
               <span className="text-slate-500">রেফারেন্স / রসিদ নং: </span>
               <span className="font-mono-num font-bold text-slate-900">
@@ -164,17 +165,17 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
             <table className="w-full text-left text-sm">
               <tbody className="divide-y divide-slate-200">
                 <tr>
-                  <th className="w-40 sm:w-48 bg-slate-50 px-4 py-3 font-semibold text-slate-600">
+                  <th className="w-40 sm:w-48 bg-slate-50/70 px-4 py-3 font-semibold text-slate-600">
                     প্রকল্পের নাম
                   </th>
                   <td className="px-4 py-3 font-bold text-slate-900">{payload.projectName}</td>
                 </tr>
                 <tr>
-                  <th className="bg-slate-50 px-4 py-3 font-semibold text-slate-600">দাতার নাম</th>
+                  <th className="bg-slate-50/70 px-4 py-3 font-semibold text-slate-600">দাতার নাম</th>
                   <td className="px-4 py-3 font-semibold text-slate-900">{payload.donorName}</td>
                 </tr>
                 <tr>
-                  <th className="bg-slate-50 px-4 py-3 font-semibold text-slate-600">
+                  <th className="bg-slate-50/70 px-4 py-3 font-semibold text-slate-600">
                     টাকার পরিমাণ
                   </th>
                   <td className="px-4 py-3 font-mono-num text-lg font-bold text-emerald-800">
@@ -182,14 +183,14 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
                   </td>
                 </tr>
                 <tr>
-                  <th className="bg-slate-50 px-4 py-3 font-semibold text-slate-600">তারিখ</th>
+                  <th className="bg-slate-50/70 px-4 py-3 font-semibold text-slate-600">তারিখ</th>
                   <td className="px-4 py-3 font-mono-num font-semibold text-slate-900">
                     {payload.date}
                   </td>
                 </tr>
                 {payload.paymentInfo && (
                   <tr>
-                    <th className="bg-slate-50 px-4 py-3 font-semibold text-slate-600">
+                    <th className="bg-slate-50/70 px-4 py-3 font-semibold text-slate-600">
                       পেমেন্ট মাধ্যম
                     </th>
                     <td className="px-4 py-3 font-mono-num text-slate-800">
@@ -199,7 +200,7 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
                 )}
                 {payload.statusLabel && (
                   <tr>
-                    <th className="bg-slate-50 px-4 py-3 font-semibold text-slate-600">অবস্থা</th>
+                    <th className="bg-slate-50/70 px-4 py-3 font-semibold text-slate-600">অবস্থা</th>
                     <td className="px-4 py-3 font-semibold text-slate-900">{payload.statusLabel}</td>
                   </tr>
                 )}
@@ -316,6 +317,7 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
             <span>
               ফোন: {ORG_CONTACT.phoneDisplay} · ইমেইল: {ORG_CONTACT.email}
             </span>
+          </div>
           </div>
         </div>
       </div>

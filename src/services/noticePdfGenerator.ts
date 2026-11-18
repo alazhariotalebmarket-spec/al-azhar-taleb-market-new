@@ -101,15 +101,61 @@ async function renderNoticeCanvas(
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, pageWidth, pageHeight);
 
+  // Pre-compute layout coordinates so card fills and watermark sit strictly BEHIND all text
+  const headerY = 56;
+  const badgeY = headerY + 165;
+  const badgeHeight = 54;
+  const badgeWidth = 320;
+  const badgeX = (pageWidth - badgeWidth) / 2;
+  const metaY = badgeY + 84;
+  const titleY = metaY + 82;
+
+  const isUrgent =
+    Boolean(notice.important) ||
+    notice.title.includes('জরুরী') ||
+    notice.title.includes('জরুরি') ||
+    notice.category.includes('জরুরী') ||
+    notice.category.includes('জরুরি');
+
+  ctx.font = '700 25px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+  const titleLines = getWrappedLines(ctx, notice.title, contentWidth - 170);
+  const curTitleY = titleY + Math.max(0, titleLines.length - 1) * 34;
+  const titleUnderlineY = curTitleY + 22;
+
+  ctx.font = '400 22px "Noto Sans Bengali", sans-serif';
+  const bodyLines = getWrappedLines(ctx, notice.content, contentWidth - 60);
+  const contentStartY = titleUnderlineY + 40;
+  const calculatedHeight = Math.max(340, bodyLines.length * 40 + 70);
+  const maxAllowedHeight = pageHeight - contentStartY - 330;
+  const contentCardHeight = Math.min(maxAllowedHeight, calculatedHeight);
+
+  // Layer 1: Soft card/badge background fills
+  ctx.fillStyle = isUrgent ? '#fef2f2' : '#ecfdf5';
+  ctx.beginPath();
+  ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 12);
+  ctx.fill();
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.roundRect(marginX, metaY, contentWidth, 48, 8);
+  ctx.fill();
+
+  ctx.fillStyle = '#fafaf9';
+  ctx.beginPath();
+  ctx.roundRect(marginX, contentStartY, contentWidth, contentCardHeight, 12);
+  ctx.fill();
+
+  // Layer 2: Mandatory large centered organization logo watermark (strictly BEHIND text)
+  const activeLogo = logoUrl || ORG_WATERMARK_LOGO_FALLBACK;
+  const loadedLogo = await loadCachedLogoImage(activeLogo);
+  drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo, 0.14);
+
+  // Layer 3: All borders, headers, text, signatures, and footer ON TOP of watermark
   // Top emerald accent bar
   ctx.fillStyle = '#065f46';
   ctx.fillRect(0, 0, pageWidth, 20);
 
   // 1. Institutional Header
-  const activeLogo = logoUrl || ORG_WATERMARK_LOGO_FALLBACK;
-  const loadedLogo = await loadCachedLogoImage(activeLogo);
-
-  const headerY = 56;
   const logoSize = 100;
   const logoX = marginX;
   const logoY = headerY + 6;
@@ -174,46 +220,25 @@ async function renderNoticeCanvas(
   ctx.lineTo(marginX + 200, headerY + 135);
   ctx.stroke();
 
-  // 2. Prominent Center Notice Badge
-  const isUrgent =
-    Boolean(notice.important) ||
-    notice.title.includes('জরুরী') ||
-    notice.title.includes('জরুরি') ||
-    notice.category.includes('জরুরী') ||
-    notice.category.includes('জরুরি');
-
-  const badgeY = headerY + 165;
-  const badgeHeight = 54;
-  const badgeWidth = 320;
-  const badgeX = (pageWidth - badgeWidth) / 2;
-
-  // Rounded badge background
-  ctx.fillStyle = isUrgent ? '#fef2f2' : '#ecfdf5';
+  // 2. Prominent Center Notice Badge border & text
   ctx.strokeStyle = isUrgent ? '#dc2626' : '#059669';
   ctx.lineWidth = 2;
-  const radius = 12;
   ctx.beginPath();
-  ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, radius);
-  ctx.fill();
+  ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 12);
   ctx.stroke();
 
-  // Badge Text
   ctx.fillStyle = isUrgent ? '#b91c1c' : '#065f46';
   ctx.font = '700 28px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(isUrgent ? 'জরুরি নোটিশ' : notice.category || 'সাধারণ নোটিশ', pageWidth / 2, badgeY + 37);
   ctx.textAlign = 'left';
 
-  // 3. Date & Institutional Reference Meta Strip
-  const metaY = badgeY + 84;
+  // 3. Date & Institutional Reference Meta Strip border & text
   const displayDate = notice.displayDate || notice.date;
-
-  ctx.fillStyle = '#f8fafc';
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.roundRect(marginX, metaY, contentWidth, 48, 8);
-  ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = '#334155';
@@ -227,8 +252,6 @@ async function renderNoticeCanvas(
   ctx.textAlign = 'left';
 
   // 4. Notice Subject / Title Block
-  const titleY = metaY + 82;
-
   ctx.fillStyle = '#0f172a';
   ctx.font = '700 21px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
   ctx.fillText('বিষয় / শিরোনাম:', marginX, titleY);
@@ -236,19 +259,17 @@ async function renderNoticeCanvas(
   ctx.fillStyle = isUrgent ? '#991b1b' : '#065f46';
   ctx.font = '700 25px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
 
-  const titleLines = getWrappedLines(ctx, notice.title, contentWidth - 170);
-  let curTitleY = titleY;
+  let drawnTitleY = titleY;
   titleLines.forEach((tLine, i) => {
     if (i === 0) {
-      ctx.fillText(tLine, marginX + 160, curTitleY);
+      ctx.fillText(tLine, marginX + 160, drawnTitleY);
     } else {
-      curTitleY += 34;
-      ctx.fillText(tLine, marginX + 160, curTitleY);
+      drawnTitleY += 34;
+      ctx.fillText(tLine, marginX + 160, drawnTitleY);
     }
   });
 
   // Divider under Title
-  const titleUnderlineY = curTitleY + 22;
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -256,22 +277,11 @@ async function renderNoticeCanvas(
   ctx.lineTo(pageWidth - marginX, titleUnderlineY);
   ctx.stroke();
 
-  // 5. Notice Main Content Body
-  ctx.fillStyle = '#1e293b';
-  ctx.font = '400 22px "Noto Sans Bengali", sans-serif';
-  const bodyLines = getWrappedLines(ctx, notice.content, contentWidth - 60);
-
-  const contentStartY = titleUnderlineY + 40;
-  const calculatedHeight = Math.max(340, bodyLines.length * 40 + 70);
-  const maxAllowedHeight = pageHeight - contentStartY - 330;
-  const contentCardHeight = Math.min(maxAllowedHeight, calculatedHeight);
-
-  ctx.fillStyle = '#fafaf9';
+  // 5. Notice Main Content Body border, stripe & text
   ctx.strokeStyle = '#e7e5e4';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.roundRect(marginX, contentStartY, contentWidth, contentCardHeight, 12);
-  ctx.fill();
   ctx.stroke();
 
   // Left vertical colored accent stripe on content card
@@ -360,9 +370,6 @@ async function renderNoticeCanvas(
   // Bottom emerald bar
   ctx.fillStyle = '#065f46';
   ctx.fillRect(0, pageHeight - 16, pageWidth, 16);
-
-  // Centered subtle organization logo watermark
-  drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo);
 
   return canvas;
 }

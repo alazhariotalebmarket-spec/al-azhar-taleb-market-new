@@ -135,18 +135,19 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
         </div>
 
         {/* Printable Single-Member Annual Eyanot Report */}
-        <div className="relative overflow-hidden p-6 sm:p-8 space-y-6">
-          {/* Centered Transparent Organization Logo Watermark */}
+        <div className="relative overflow-hidden p-6 sm:p-8">
+          {/* Centered Transparent Organization Logo Watermark (strictly behind text) */}
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+            className="pointer-events-none select-none absolute inset-0 z-0 flex items-center justify-center"
           >
             <img
               src={activeLogoSrc}
               alt=""
-              className="h-72 w-72 sm:h-88 sm:w-88 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+              className="w-[72%] max-w-[440px] aspect-square rounded-full object-contain opacity-[0.14] mix-blend-multiply"
             />
           </div>
+          <div className="relative z-10 space-y-6">
           {/* Organization Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -220,7 +221,7 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {reportData.rows.map((row, idx) => (
-                  <tr key={row.monthName} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                  <tr key={row.monthName} className={idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/55'}>
                     <td className="px-4 py-2 font-mono-num text-slate-500">{idx + 1}</td>
                     <td className="px-4 py-2 font-semibold text-slate-900">{row.monthName}</td>
                     <td className="px-4 py-2 text-right font-mono-num text-slate-700">
@@ -294,6 +295,7 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
           <div className="grid grid-cols-2 gap-8 pt-6 text-center text-xs text-slate-500">
             <div className="border-t border-slate-300 pt-2">সদস্যের স্বাক্ষর</div>
             <div className="border-t border-slate-300 pt-2">কোষাধ্যক্ষ / দায়িত্বপ্রাপ্ত অ্যাডমিন</div>
+          </div>
           </div>
         </div>
       </div>

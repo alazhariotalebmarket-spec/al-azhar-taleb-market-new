@@ -266,17 +266,18 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                   </div>
 
                   {/* ID Body */}
-                  <div className="relative overflow-hidden p-5 space-y-4">
+                  <div className="relative overflow-hidden p-5">
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+                      className="pointer-events-none select-none absolute inset-0 z-0 flex items-center justify-center"
                     >
                       <img
                         src={activeLogoSrc}
                         alt=""
-                        className="h-52 w-52 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+                        className="w-[74%] max-w-[260px] aspect-square rounded-full object-contain opacity-[0.14] mix-blend-multiply"
                       />
                     </div>
+                    <div className="relative z-10 space-y-4">
                     <div className="flex flex-col items-center text-center">
                       <OrgLogo
                         src={avatarSrc}
@@ -329,6 +330,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                       কার্যালয়: {ORG_CONTACT.addressLine1}, {ORG_CONTACT.addressLine2} ·{' '}
                       {ORG_CONTACT.phoneDisplay}
                     </div>
+                    </div>
                   </div>
                 </div>
 
@@ -344,17 +346,18 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="relative overflow-hidden space-y-6 p-6">
+              <div className="relative overflow-hidden p-6">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+                  className="pointer-events-none select-none absolute inset-0 z-0 flex items-center justify-center"
                 >
                   <img
                     src={activeLogoSrc}
                     alt=""
-                    className="h-72 w-72 sm:h-88 sm:w-88 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+                    className="w-[72%] max-w-[440px] aspect-square rounded-full object-contain opacity-[0.14] mix-blend-multiply"
                   />
                 </div>
+                <div className="relative z-10 space-y-6">
                 {/* Personal Details */}
                 <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2 text-sm">
                   <div className="flex items-start gap-2.5">
@@ -582,6 +585,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                       </table>
                     </div>
                   </div>
+                </div>
                 </div>
               </div>
             )}
