@@ -81,19 +81,21 @@ export const AdminEyanotSheet: React.FC<AdminEyanotSheetProps> = ({
   const monthStats = useMemo(() => {
     let expected = 0;
     let collected = 0;
+    let due = 0;
     let paidCount = 0;
 
     activeMembers.forEach((m) => {
-      expected += m.monthlyFee || 0;
-      const amt = m.eyanotPayments?.[selectedYear]?.[selectedMonth] || 0;
+      const fee = Number(m.monthlyFee) || 0;
+      const amt = Number(m.eyanotPayments?.[selectedYear]?.[selectedMonth]) || 0;
+      expected += fee;
       if (amt > 0) {
         collected += amt;
         paidCount += 1;
       }
+      due += Math.max(0, fee - amt);
     });
 
-    const due = Math.max(0, expected - collected);
-    const rate = expected > 0 ? Math.round((collected / expected) * 100) : 0;
+    const rate = expected > 0 ? Math.min(100, Math.round((collected / expected) * 100)) : 0;
     return {
       expected,
       collected,
@@ -107,7 +109,7 @@ export const AdminEyanotSheet: React.FC<AdminEyanotSheetProps> = ({
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase();
     return activeMembers.filter((m) => {
-      const amt = m.eyanotPayments?.[selectedYear]?.[selectedMonth] || 0;
+      const amt = Number(m.eyanotPayments?.[selectedYear]?.[selectedMonth]) || 0;
       const isPaid = amt > 0;
       if (statusFilter === 'paid' && !isPaid) return false;
       if (statusFilter === 'due' && isPaid) return false;
@@ -120,6 +122,30 @@ export const AdminEyanotSheet: React.FC<AdminEyanotSheetProps> = ({
       );
     });
   }, [activeMembers, selectedYear, selectedMonth, statusFilter, search]);
+
+  const tableTotals = useMemo(() => {
+    let monthlyFeeSum = 0;
+    let paidSum = 0;
+    let dueSum = 0;
+    const perMonth: Record<number, number> = {};
+    displayedMonthIndices.forEach((mIdx) => {
+      perMonth[mIdx] = 0;
+    });
+
+    filteredMembers.forEach((m) => {
+      const fee = Number(m.monthlyFee) || 0;
+      monthlyFeeSum += fee;
+      const yearMap = m.eyanotPayments?.[selectedYear] || {};
+      displayedMonthIndices.forEach((mIdx) => {
+        const p = Number(yearMap[mIdx]) || 0;
+        perMonth[mIdx] += p;
+        paidSum += p;
+        dueSum += Math.max(0, fee - p);
+      });
+    });
+
+    return { monthlyFeeSum, perMonth, paidSum, dueSum };
+  }, [filteredMembers, selectedYear, displayedMonthIndices]);
 
   return (
     <div className="space-y-5 print-area">
@@ -315,14 +341,14 @@ export const AdminEyanotSheet: React.FC<AdminEyanotSheetProps> = ({
                   ? buildEyanotSmsHref(member.phone, member.name, selectedMonthName, smsAmount)
                   : undefined;
 
-                // Auto-calculated totals for displayed months / year
-                const totalPaidYear = Object.values(yearMap).reduce(
-                  (sum, v) => sum + (Number(v) || 0),
+                // Auto-calculated totals matching displayed months
+                const totalPaidDisplayed = displayedMonthIndices.reduce(
+                  (sum, mIdx) => sum + (Number(yearMap[mIdx]) || 0),
                   0
                 );
                 const totalDueDisplayed = displayedMonthIndices.reduce((sum, mIdx) => {
-                  const p = yearMap[mIdx] || 0;
-                  return sum + Math.max(0, (member.monthlyFee || 0) - p);
+                  const p = Number(yearMap[mIdx]) || 0;
+                  return sum + Math.max(0, (Number(member.monthlyFee) || 0) - p);
                 }, 0);
 
                 return (
@@ -418,7 +444,7 @@ export const AdminEyanotSheet: React.FC<AdminEyanotSheetProps> = ({
                     })}
 
                     <td className="px-4 py-3 text-right font-mono-num font-bold text-emerald-700 whitespace-nowrap">
-                      ৳ {totalPaidYear.toLocaleString('en-US')}
+                      ৳ {totalPaidDisplayed.toLocaleString('en-US')}
                     </td>
                     <td className="px-4 py-3 text-right font-mono-num font-bold text-red-700 whitespace-nowrap">
                       ৳ {totalDueDisplayed.toLocaleString('en-US')}
@@ -474,6 +500,35 @@ export const AdminEyanotSheet: React.FC<AdminEyanotSheetProps> = ({
                 </tr>
               )}
             </tbody>
+            {filteredMembers.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold text-slate-900">
+                  <td colSpan={2} className="px-4 py-3 text-xs uppercase tracking-wide text-slate-700 whitespace-nowrap">
+                    সর্বমোট ({filteredMembers.length} জন)
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono-num whitespace-nowrap">
+                    ৳ {tableTotals.monthlyFeeSum.toLocaleString('en-US')}
+                  </td>
+                  {displayedMonthIndices.map((mIdx) => (
+                    <td
+                      key={mIdx}
+                      className={`px-3 py-3 text-center font-mono-num text-xs text-emerald-800 whitespace-nowrap ${
+                        mIdx === selectedMonth ? 'bg-emerald-50/60' : ''
+                      }`}
+                    >
+                      ৳ {(tableTotals.perMonth[mIdx] || 0).toLocaleString('en-US')}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-right font-mono-num text-emerald-700 whitespace-nowrap">
+                    ৳ {tableTotals.paidSum.toLocaleString('en-US')}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono-num text-red-700 whitespace-nowrap">
+                    ৳ {tableTotals.dueSum.toLocaleString('en-US')}
+                  </td>
+                  <td className="no-print px-4 py-3" />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

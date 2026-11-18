@@ -55,13 +55,15 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
     }
 
     const monthMap = member.eyanotPayments?.[year] || {};
-    const monthlyExpected = member.monthlyFee || 0;
+    const monthlyExpected = Number(member.monthlyFee) || 0;
     let totalPaid = 0;
+    let totalDue = 0;
     let paidMonthsCount = 0;
 
     const rows = BENGALI_MONTHS.map((monthName, idx) => {
-      const paid = monthMap[idx] || 0;
+      const paid = Number(monthMap[idx]) || 0;
       const due = Math.max(0, monthlyExpected - paid);
+      totalDue += due;
       if (paid > 0) {
         totalPaid += paid;
         paidMonthsCount += 1;
@@ -83,7 +85,6 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
     });
 
     const annualExpected = monthlyExpected * 12;
-    const totalDue = Math.max(0, annualExpected - totalPaid);
 
     return {
       rows,

@@ -4,6 +4,7 @@ import { UserPortal } from './components/UserPortal';
 import {
   loadOrganizationData,
   mergeCalendarBannerProjectSeed,
+  mergeFerdausMollaLocalSeed,
   saveOrganizationData,
 } from './data/initialData';
 import {
@@ -125,11 +126,13 @@ export default function App() {
           ? remoteOrLocal.driveDocuments
           : prev.driveDocuments,
       }));
+      saveOrganizationData(remoteOrLocal);
     });
 
     const unsubscribe = subscribeToOrganizationData((remoteData) => {
       if (!active || !remoteData) return;
-      const { data: syncedData } = mergeCalendarBannerProjectSeed(remoteData);
+      const withFerdaus = mergeFerdausMollaLocalSeed(remoteData);
+      const { data: syncedData } = mergeCalendarBannerProjectSeed(withFerdaus);
       setData((prev) => ({
         ...prev,
         ...syncedData,

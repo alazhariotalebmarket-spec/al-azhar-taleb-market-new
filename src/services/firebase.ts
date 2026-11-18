@@ -13,7 +13,10 @@ import {
 } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig';
 import { OrganizationData } from '../types';
-import { mergeCalendarBannerProjectSeed } from '../data/initialData';
+import {
+  mergeCalendarBannerProjectSeed,
+  mergeFerdausMollaLocalSeed,
+} from '../data/initialData';
 
 export enum OperationType {
   CREATE = 'create',
@@ -89,12 +92,13 @@ export function handleFirestoreError(
 // Initialize Firebase App
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialize Firestore with persistent multi-tab IndexedDB cache for instant repeat loads
+// Initialize Firestore with persistent multi-tab IndexedDB cache and auto long-polling fallback
 function createFirestoreDb() {
   try {
     return initializeFirestore(
       app,
       {
+        experimentalAutoDetectLongPolling: true,
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
         }),
@@ -102,15 +106,73 @@ function createFirestoreDb() {
       firebaseConfig.firestoreDatabaseId || undefined
     );
   } catch {
-    return firebaseConfig.firestoreDatabaseId
-      ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-      : getFirestore(app);
+    try {
+      return initializeFirestore(
+        app,
+        {
+          experimentalAutoDetectLongPolling: true,
+        },
+        firebaseConfig.firestoreDatabaseId || undefined
+      );
+    } catch {
+      return firebaseConfig.firestoreDatabaseId
+        ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+        : getFirestore(app);
+    }
   }
 }
 
 export const db = createFirestoreDb();
 
 export const ORG_DOC_PATH = 'organizations/al_azhar';
+
+type FirestoreRestValue = {
+  nullValue?: null;
+  booleanValue?: boolean;
+  integerValue?: string;
+  doubleValue?: number;
+  stringValue?: string;
+  arrayValue?: { values?: FirestoreRestValue[] };
+  mapValue?: { fields?: Record<string, FirestoreRestValue> };
+};
+
+function decodeFirestoreRestValue(val: FirestoreRestValue | undefined): unknown {
+  if (!val || typeof val !== 'object') return undefined;
+  if ('nullValue' in val) return null;
+  if ('booleanValue' in val) return Boolean(val.booleanValue);
+  if ('integerValue' in val) return Number(val.integerValue);
+  if ('doubleValue' in val) return Number(val.doubleValue);
+  if ('stringValue' in val) return val.stringValue ?? '';
+  if ('arrayValue' in val) {
+    return (val.arrayValue?.values || []).map((v) => decodeFirestoreRestValue(v));
+  }
+  if ('mapValue' in val) {
+    const out: Record<string, unknown> = {};
+    const fields = val.mapValue?.fields || {};
+    for (const [k, v] of Object.entries(fields)) {
+      out[k] = decodeFirestoreRestValue(v);
+    }
+    return out;
+  }
+  return undefined;
+}
+
+async function fetchOrganizationFromFirestoreRest(): Promise<OrganizationData | null> {
+  if (!firebaseConfig.projectId || !firebaseConfig.apiKey) return null;
+  const dbId = firebaseConfig.firestoreDatabaseId || '(default)';
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    firebaseConfig.projectId
+  )}/databases/${encodeURIComponent(dbId)}/documents/${ORG_DOC_PATH}?key=${encodeURIComponent(
+    firebaseConfig.apiKey
+  )}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { fields?: Record<string, FirestoreRestValue> };
+  if (!json.fields) return null;
+  const decoded = decodeFirestoreRestValue({ mapValue: { fields: json.fields } });
+  if (!decoded || typeof decoded !== 'object') return null;
+  return decoded as OrganizationData;
+}
 
 /**
  * Validate Firestore connectivity on initial boot
@@ -146,6 +208,9 @@ export function subscribeToOrganizationData(
   return onSnapshot(
     orgDocRef,
     (snapshot) => {
+      if (snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites) {
+        return;
+      }
       if (snapshot.exists()) {
         const raw = snapshot.data();
         if (raw && typeof raw === 'object') {
@@ -188,18 +253,39 @@ export async function ensureFirestoreInitialized(
 ): Promise<OrganizationData> {
   const orgDocRef = doc(db, 'organizations', 'al_azhar');
   try {
-    const snap = await getDoc(orgDocRef);
-    if (snap.exists()) {
-      const remoteData = snap.data() as OrganizationData;
-      const { data: mergedData, changed } = mergeCalendarBannerProjectSeed(remoteData);
-      if (changed) {
-        await saveOrganizationDataToFirestore(mergedData);
+    try {
+      const serverSnap = await getDocFromServer(orgDocRef);
+      if (serverSnap.exists()) {
+        const remoteData = mergeFerdausMollaLocalSeed(serverSnap.data() as OrganizationData);
+        const { data: mergedData, changed } = mergeCalendarBannerProjectSeed(remoteData);
+        if (changed) {
+          await saveOrganizationDataToFirestore(mergedData);
+        }
+        return mergedData;
       }
-      return mergedData;
+      await saveOrganizationDataToFirestore(fallbackData);
+      return fallbackData;
+    } catch {
+      // If SDK WebChannel/gRPC-web is blocked (e.g. iframe/proxy), fetch live document over HTTPS REST first
+      try {
+        const restData = await fetchOrganizationFromFirestoreRest();
+        if (restData) {
+          const withFerdaus = mergeFerdausMollaLocalSeed(restData);
+          const { data: mergedData } = mergeCalendarBannerProjectSeed(withFerdaus);
+          return mergedData;
+        }
+      } catch {
+        // Ignore REST error and try local Firestore cache below
+      }
+
+      const cachedSnap = await getDoc(orgDocRef);
+      if (cachedSnap.exists()) {
+        const cachedData = mergeFerdausMollaLocalSeed(cachedSnap.data() as OrganizationData);
+        const { data: mergedData } = mergeCalendarBannerProjectSeed(cachedData);
+        return mergedData;
+      }
+      return fallbackData;
     }
-    // Seed initial data to Firestore
-    await saveOrganizationDataToFirestore(fallbackData);
-    return fallbackData;
   } catch (error) {
     console.warn('Could not check or seed initial Firestore data:', error);
     return fallbackData;

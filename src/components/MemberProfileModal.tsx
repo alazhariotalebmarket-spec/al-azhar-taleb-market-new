@@ -99,17 +99,19 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
       };
     }
     const monthMap = member.eyanotPayments?.[selectedYear] || {};
+    const monthlyExpected = Number(member.monthlyFee) || 0;
     let paidTotal = 0;
+    let dueTotal = 0;
     let paidCount = 0;
     for (let i = 0; i < 12; i += 1) {
-      const amt = monthMap[i] || 0;
+      const amt = Number(monthMap[i]) || 0;
       if (amt > 0) {
         paidTotal += amt;
         paidCount += 1;
       }
+      dueTotal += Math.max(0, monthlyExpected - amt);
     }
-    const annualExpected = (member.monthlyFee || 0) * 12;
-    const dueTotal = Math.max(0, annualExpected - paidTotal);
+    const annualExpected = monthlyExpected * 12;
     return { annualExpected, paidTotal, dueTotal, paidCount, monthMap };
   }, [member, selectedYear]);
 

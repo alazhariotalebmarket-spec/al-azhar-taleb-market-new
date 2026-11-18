@@ -186,12 +186,19 @@ export const UserPortal: React.FC<UserPortalProps> = ({
     const activeMembers = activeList.length;
     const newMembers = (data.members || []).filter((m) => (m.joinDate || '').startsWith(currentYear)).length;
 
-    const expectedThisMonth = activeList.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
-    const collectedThisMonth = activeList.reduce(
-      (sum, m) => sum + (m.eyanotPayments?.[currentYear]?.[currentMonth] || 0),
+    const expectedThisMonth = activeList.reduce(
+      (sum, m) => sum + (Number(m.monthlyFee) || 0),
       0
     );
-    const dueThisMonth = Math.max(0, expectedThisMonth - collectedThisMonth);
+    const collectedThisMonth = activeList.reduce(
+      (sum, m) => sum + (Number(m.eyanotPayments?.[currentYear]?.[currentMonth]) || 0),
+      0
+    );
+    const dueThisMonth = activeList.reduce((sum, m) => {
+      const fee = Number(m.monthlyFee) || 0;
+      const paid = Number(m.eyanotPayments?.[currentYear]?.[currentMonth]) || 0;
+      return sum + Math.max(0, fee - paid);
+    }, 0);
 
     const totalIncome = data.transactions
       .filter((t) => t.type === 'income')

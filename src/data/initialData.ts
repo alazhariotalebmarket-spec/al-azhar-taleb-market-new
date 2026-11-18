@@ -32,10 +32,28 @@ const MUFTI_AL_AMIN_SAIFI_SEED: Member = {
   },
 };
 
+const FERDAUS_MOLLA_SEED: Member = {
+  id: 'm-1794616794570',
+  memberCode: 'AAIS-001',
+  name: 'মোঃ ফেরদাউস মোল্লা',
+  fatherName: '',
+  designation: 'সাধারণ সদস্য',
+  phone: '',
+  address: '',
+  bloodGroup: '',
+  monthlyFee: 100,
+  joinDate: '2026-07-01',
+  status: 'সক্রিয়',
+  eyanotPayments: {
+    '2026': { 6: 100, 7: 100, 8: 100, 9: 100 },
+  },
+};
+
 const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
+  FERDAUS_MOLLA_SEED,
   {
     id: 'eyanot-seed-01',
-    memberCode: 'AAIS-001',
+    memberCode: 'AAIS-002',
     name: 'মাওঃ আবু তালহা (শাহিন)',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -51,7 +69,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-02',
-    memberCode: 'AAIS-002',
+    memberCode: 'AAIS-003',
     name: 'মাওঃ ইমরান হোসাইন',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -778,10 +796,80 @@ export function mergeCalendarBannerProjectSeed(
   }
 }
 
+const FERDAUS_MOLLA_SEED_KEY = 'member-ferdaus-molla-2026-v1';
+export function mergeFerdausMollaLocalSeed(data: OrganizationData): OrganizationData {
+  try {
+    const existingSeededKeys = Array.isArray(data.seededKeys) ? data.seededKeys : [];
+    const currentMembers = Array.isArray(data.members) ? data.members : [];
+    const currentTransactions = Array.isArray(data.transactions) ? data.transactions : [];
+
+    const alreadyPresent = currentMembers.some(
+      (m) =>
+        m.id === FERDAUS_MOLLA_SEED.id ||
+        m.name.trim() === FERDAUS_MOLLA_SEED.name ||
+        m.name.includes('ফেরদাউস মোল্লা')
+    );
+
+    if (alreadyPresent || existingSeededKeys.includes(FERDAUS_MOLLA_SEED_KEY)) {
+      return data;
+    }
+
+    const existingTxIds = new Set(currentTransactions.map((t) => t.id));
+    const transactionsToAdd: Transaction[] = [];
+    const yearPayments = FERDAUS_MOLLA_SEED.eyanotPayments?.['2026'] || {};
+    Object.entries(yearPayments).forEach(([monthStr, paidAmt]) => {
+      const monthIndex = Number(monthStr);
+      const amount = Number(paidAmt) || 0;
+      if (amount <= 0 || Number.isNaN(monthIndex)) return;
+      const txId = `eyanot-${FERDAUS_MOLLA_SEED.id}-2026-${monthIndex}`;
+      if (existingTxIds.has(txId)) return;
+      const monthPad = String(monthIndex + 1).padStart(2, '0');
+      const monthName = BENGALI_MONTHS[monthIndex] || '';
+      transactionsToAdd.push({
+        id: txId,
+        date: '2026-11-14',
+        type: 'income',
+        category: 'মাসিক এয়ানত',
+        description: `${FERDAUS_MOLLA_SEED.name} — ${monthName} 2026 এর মাসিক এয়ানত`,
+        amount,
+        receiptNo: `EYN-2026${monthPad}-${FERDAUS_MOLLA_SEED.memberCode}`,
+      });
+      existingTxIds.add(txId);
+    });
+
+    const seedMember: Member = {
+      ...FERDAUS_MOLLA_SEED,
+      eyanotPayments: {
+        '2026': { ...(FERDAUS_MOLLA_SEED.eyanotPayments?.['2026'] || {}) },
+      },
+    };
+
+    // Place right after #1 মুফতী আল আমিন সাইফী if present at top, otherwise at index 0
+    const nextMembers = [...currentMembers];
+    const insertIndex =
+      nextMembers.length > 0 && nextMembers[0]?.name.includes('আল আমিন সাইফী') ? 1 : 0;
+    nextMembers.splice(insertIndex, 0, seedMember);
+
+    const merged: OrganizationData = {
+      ...data,
+      members: nextMembers,
+      transactions: [...transactionsToAdd, ...currentTransactions],
+      seededKeys: [...existingSeededKeys, FERDAUS_MOLLA_SEED_KEY],
+    };
+
+    saveOrganizationData(merged);
+    return merged;
+  } catch {
+    return data;
+  }
+}
+
 function finalizeSeedPipeline(data: OrganizationData): OrganizationData {
   const afterCleared = mergeProjectsClearedUpdate(
     mergeHomeNoticesUpdate(
-      mergeMuftiAlAminSaifiSeed(mergeExpenses2026Seed(mergeJuly2026EyanotSeed(data)))
+      mergeFerdausMollaLocalSeed(
+        mergeMuftiAlAminSaifiSeed(mergeExpenses2026Seed(mergeJuly2026EyanotSeed(data)))
+      )
     )
   );
   const { data: withCalendarProject, changed } = mergeCalendarBannerProjectSeed(afterCleared);
