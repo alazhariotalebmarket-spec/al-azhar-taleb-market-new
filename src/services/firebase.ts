@@ -16,6 +16,7 @@ import { OrganizationData } from '../types';
 import {
   mergeCalendarBannerProjectSeed,
   mergeFerdausMollaLocalSeed,
+  normalizeMemberSerialCodesSeed,
 } from '../data/initialData';
 
 export enum OperationType {
@@ -257,8 +258,11 @@ export async function ensureFirestoreInitialized(
       const serverSnap = await getDocFromServer(orgDocRef);
       if (serverSnap.exists()) {
         const remoteData = mergeFerdausMollaLocalSeed(serverSnap.data() as OrganizationData);
-        const { data: mergedData, changed } = mergeCalendarBannerProjectSeed(remoteData);
-        if (changed) {
+        const { data: withCalendar, changed: calendarChanged } =
+          mergeCalendarBannerProjectSeed(remoteData);
+        const { data: mergedData, changed: codesChanged } =
+          normalizeMemberSerialCodesSeed(withCalendar);
+        if (calendarChanged || codesChanged) {
           await saveOrganizationDataToFirestore(mergedData);
         }
         return mergedData;
@@ -271,7 +275,8 @@ export async function ensureFirestoreInitialized(
         const restData = await fetchOrganizationFromFirestoreRest();
         if (restData) {
           const withFerdaus = mergeFerdausMollaLocalSeed(restData);
-          const { data: mergedData } = mergeCalendarBannerProjectSeed(withFerdaus);
+          const { data: withCalendar } = mergeCalendarBannerProjectSeed(withFerdaus);
+          const { data: mergedData } = normalizeMemberSerialCodesSeed(withCalendar);
           return mergedData;
         }
       } catch {
@@ -281,7 +286,8 @@ export async function ensureFirestoreInitialized(
       const cachedSnap = await getDoc(orgDocRef);
       if (cachedSnap.exists()) {
         const cachedData = mergeFerdausMollaLocalSeed(cachedSnap.data() as OrganizationData);
-        const { data: mergedData } = mergeCalendarBannerProjectSeed(cachedData);
+        const { data: withCalendar } = mergeCalendarBannerProjectSeed(cachedData);
+        const { data: mergedData } = normalizeMemberSerialCodesSeed(withCalendar);
         return mergedData;
       }
       return fallbackData;

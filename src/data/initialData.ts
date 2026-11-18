@@ -34,7 +34,7 @@ const MUFTI_AL_AMIN_SAIFI_SEED: Member = {
 
 const FERDAUS_MOLLA_SEED: Member = {
   id: 'm-1794616794570',
-  memberCode: 'AAIS-001',
+  memberCode: 'AAIS-002',
   name: 'মোঃ ফেরদাউস মোল্লা',
   fatherName: '',
   designation: 'সাধারণ সদস্য',
@@ -53,7 +53,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   FERDAUS_MOLLA_SEED,
   {
     id: 'eyanot-seed-01',
-    memberCode: 'AAIS-002',
+    memberCode: 'AAIS-003',
     name: 'মাওঃ আবু তালহা (শাহিন)',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -69,7 +69,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-02',
-    memberCode: 'AAIS-003',
+    memberCode: 'AAIS-004',
     name: 'মাওঃ ইমরান হোসাইন',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -85,7 +85,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-04',
-    memberCode: 'AAIS-004',
+    memberCode: 'AAIS-005',
     name: 'মাওঃ আহমাদুল্লাহ',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -101,7 +101,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-05',
-    memberCode: 'AAIS-005',
+    memberCode: 'AAIS-006',
     name: 'মাওঃ মুহাম্মদুল্লাহ',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -117,7 +117,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-06',
-    memberCode: 'AAIS-006',
+    memberCode: 'AAIS-007',
     name: 'মোঃ রাকিবুল ইসলাম',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -133,7 +133,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-07',
-    memberCode: 'AAIS-007',
+    memberCode: 'AAIS-008',
     name: 'মোঃ জিহাদ মোল্লা',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -149,7 +149,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-08',
-    memberCode: 'AAIS-008',
+    memberCode: 'AAIS-009',
     name: 'মোঃ খাইরুল ইসলাম',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -165,7 +165,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-09',
-    memberCode: 'AAIS-009',
+    memberCode: 'AAIS-010',
     name: 'মোঃ রিফাত হোসাইন',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -181,7 +181,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-10',
-    memberCode: 'AAIS-010',
+    memberCode: 'AAIS-011',
     name: 'মোঃ শামসুল হক',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -197,7 +197,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-11',
-    memberCode: 'AAIS-011',
+    memberCode: 'AAIS-012',
     name: 'হাফেজ মোঃ জাহিদ হাওঃ',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -213,7 +213,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-12',
-    memberCode: 'AAIS-012',
+    memberCode: 'AAIS-013',
     name: 'মোঃ মেহেদী হাসান মাদঃ',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -229,7 +229,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-13',
-    memberCode: 'AAIS-013',
+    memberCode: 'AAIS-014',
     name: 'হাফেজ নাঈমুল ইসলাম',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -245,7 +245,7 @@ const JULY_2026_EYANOT_MEMBERS_SEED: Member[] = [
   },
   {
     id: 'eyanot-seed-14',
-    memberCode: 'AAIS-014',
+    memberCode: 'AAIS-015',
     name: 'মোঃ আল আমিন সিকদার',
     fatherName: '',
     designation: 'সাধারণ সদস্য',
@@ -864,6 +864,89 @@ export function mergeFerdausMollaLocalSeed(data: OrganizationData): Organization
   }
 }
 
+const MEMBER_CODES_NORMALIZED_KEY = 'members-aais-serial-2026-v1';
+
+export function getNextMemberCode(members: Member[]): string {
+  let maxNum = members.length;
+  for (const m of members) {
+    const match = /^AAIS-(\d+)$/i.exec((m.memberCode || '').trim());
+    if (match) {
+      const n = Number(match[1]);
+      if (!Number.isNaN(n) && n > maxNum) {
+        maxNum = n;
+      }
+    }
+  }
+  return `AAIS-${String(maxNum + 1).padStart(3, '0')}`;
+}
+
+export function normalizeMemberSerialCodesSeed(
+  data: OrganizationData
+): { data: OrganizationData; changed: boolean } {
+  try {
+    const currentMembers = Array.isArray(data.members) ? data.members : [];
+    if (currentMembers.length === 0) {
+      return { data, changed: false };
+    }
+
+    const existingSeededKeys = Array.isArray(data.seededKeys) ? data.seededKeys : [];
+    const seenCodes = new Set<string>();
+    let hasDuplicateOrMismatch = false;
+    for (let i = 0; i < currentMembers.length; i += 1) {
+      const expectedCode = `AAIS-${String(i + 1).padStart(3, '0')}`;
+      const actualCode = (currentMembers[i].memberCode || '').trim();
+      if (seenCodes.has(actualCode) || (!existingSeededKeys.includes(MEMBER_CODES_NORMALIZED_KEY) && actualCode !== expectedCode)) {
+        hasDuplicateOrMismatch = true;
+        break;
+      }
+      seenCodes.add(actualCode);
+    }
+
+    if (existingSeededKeys.includes(MEMBER_CODES_NORMALIZED_KEY) && !hasDuplicateOrMismatch) {
+      return { data, changed: false };
+    }
+
+    const codeByMemberId = new Map<string, string>();
+    const nextMembers = currentMembers.map((m, idx) => {
+      const nextCode = `AAIS-${String(idx + 1).padStart(3, '0')}`;
+      codeByMemberId.set(m.id, nextCode);
+      return m.memberCode === nextCode ? m : { ...m, memberCode: nextCode };
+    });
+
+    const currentTransactions = Array.isArray(data.transactions) ? data.transactions : [];
+    const nextTransactions = currentTransactions.map((tx) => {
+      if (!tx.id.startsWith('eyanot-') || !tx.receiptNo) return tx;
+      for (const [memberId, nextCode] of codeByMemberId.entries()) {
+        const prefix = `eyanot-${memberId}-`;
+        if (tx.id.startsWith(prefix)) {
+          const updatedReceipt = tx.receiptNo.replace(/^(EYN-\d{6}-).*$/, `$1${nextCode}`);
+          if (updatedReceipt !== tx.receiptNo) {
+            return { ...tx, receiptNo: updatedReceipt };
+          }
+          break;
+        }
+      }
+      return tx;
+    });
+
+    const nextSeededKeys = existingSeededKeys.includes(MEMBER_CODES_NORMALIZED_KEY)
+      ? existingSeededKeys
+      : [...existingSeededKeys, MEMBER_CODES_NORMALIZED_KEY];
+
+    return {
+      data: {
+        ...data,
+        members: nextMembers,
+        transactions: nextTransactions,
+        seededKeys: nextSeededKeys,
+      },
+      changed: true,
+    };
+  } catch {
+    return { data, changed: false };
+  }
+}
+
 function finalizeSeedPipeline(data: OrganizationData): OrganizationData {
   const afterCleared = mergeProjectsClearedUpdate(
     mergeHomeNoticesUpdate(
@@ -872,11 +955,14 @@ function finalizeSeedPipeline(data: OrganizationData): OrganizationData {
       )
     )
   );
-  const { data: withCalendarProject, changed } = mergeCalendarBannerProjectSeed(afterCleared);
-  if (changed) {
-    saveOrganizationData(withCalendarProject);
+  const { data: withCalendarProject, changed: calendarChanged } =
+    mergeCalendarBannerProjectSeed(afterCleared);
+  const { data: withNormalizedCodes, changed: codesChanged } =
+    normalizeMemberSerialCodesSeed(withCalendarProject);
+  if (calendarChanged || codesChanged) {
+    saveOrganizationData(withNormalizedCodes);
   }
-  return withCalendarProject;
+  return withNormalizedCodes;
 }
 
 export function loadOrganizationData(): OrganizationData {

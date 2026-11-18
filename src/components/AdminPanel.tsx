@@ -44,6 +44,7 @@ import {
   Transaction,
   TransactionType,
 } from '../types';
+import { getNextMemberCode } from '../data/initialData';
 import {
   ClipboardList,
   Download,
@@ -424,7 +425,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setMemberFormError(null);
     setMemberFeeInput('500');
     setMemberForm({
-      memberCode: `AAIS-${String(data.members.length + 1).padStart(3, '0')}`,
+      memberCode: getNextMemberCode(data.members),
       name: '',
       fatherName: '',
       designation: 'সাধারণ সদস্য',
@@ -517,7 +518,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       onMutateData(
         (prev) => ({
           ...prev,
-          members: [newMember, ...prev.members],
+          members: [...prev.members, newMember],
         }),
         'নতুন সদস্য যোগ'
       );

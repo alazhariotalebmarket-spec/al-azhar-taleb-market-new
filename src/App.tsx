@@ -5,6 +5,7 @@ import {
   loadOrganizationData,
   mergeCalendarBannerProjectSeed,
   mergeFerdausMollaLocalSeed,
+  normalizeMemberSerialCodesSeed,
   saveOrganizationData,
 } from './data/initialData';
 import {
@@ -132,7 +133,8 @@ export default function App() {
     const unsubscribe = subscribeToOrganizationData((remoteData) => {
       if (!active || !remoteData) return;
       const withFerdaus = mergeFerdausMollaLocalSeed(remoteData);
-      const { data: syncedData } = mergeCalendarBannerProjectSeed(withFerdaus);
+      const { data: withCalendar } = mergeCalendarBannerProjectSeed(withFerdaus);
+      const { data: syncedData } = normalizeMemberSerialCodesSeed(withCalendar);
       setData((prev) => ({
         ...prev,
         ...syncedData,

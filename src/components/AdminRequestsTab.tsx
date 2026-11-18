@@ -7,6 +7,7 @@ import {
   OrganizationData,
   Transaction,
 } from '../types';
+import { getNextMemberCode } from '../data/initialData';
 
 interface AdminRequestsTabProps {
   donationRequests: DonationRequest[];
@@ -81,7 +82,7 @@ export const AdminRequestsTab: React.FC<AdminRequestsTabProps> = ({
 
   const handleApproveApplication = (app: MemberApplication) => {
     onMutateData((prev) => {
-      const nextCode = `AAIS-${String(prev.members.length + 1).padStart(3, '0')}`;
+      const nextCode = getNextMemberCode(prev.members);
       const newMember: Member = {
         id: `m-${Date.now()}`,
         memberCode: nextCode,
@@ -102,7 +103,7 @@ export const AdminRequestsTab: React.FC<AdminRequestsTabProps> = ({
         memberApplications: prev.memberApplications.map((a) =>
           a.id === app.id ? { ...a, status: 'approved' } : a
         ),
-        members: [newMember, ...prev.members],
+        members: [...prev.members, newMember],
       };
     }, `নতুন সদস্য আবেদন অনুমোদন (${app.name})`);
   };
