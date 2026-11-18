@@ -13,9 +13,10 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { BENGALI_MONTHS, DEFAULT_LOGO_URL, Member, ORG_NAME, ORG_TAGLINE } from '../types';
+import { BENGALI_MONTHS, Member, ORG_NAME, ORG_TAGLINE } from '../types';
 import { ORG_CONTACT } from '../services/contactConfig';
 import { buildEyanotSmsHref } from '../services/smsUtils';
+import { ORG_WATERMARK_LOGO_FALLBACK } from '../services/watermarkUtils';
 import { MemberAnnualEyanotPrintModal } from './MemberAnnualEyanotPrintModal';
 import { OrgLogo } from './OrgLogo';
 
@@ -117,7 +118,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
 
   if (!member) return null;
 
-  const avatarSrc = member.photoUrl || orgLogoUrl || DEFAULT_LOGO_URL;
+  const activeLogoSrc = orgLogoUrl || ORG_WATERMARK_LOGO_FALLBACK;
+  const avatarSrc = member.photoUrl || activeLogoSrc;
   const canEditEyanot = isAdmin && Boolean(onToggleMonth);
   const cleanPhone = (member.phone || '').replace(/[^\d+]/g, '');
   const smsPaidAmt = yearStats.monthMap[smsMonthIndex] || 0;
@@ -252,7 +254,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                   {/* Top Institutional Header Strip */}
                   <div className="bg-emerald-900 px-5 py-4 text-white flex items-center gap-3.5">
                     <OrgLogo
-                      src={orgLogoUrl || DEFAULT_LOGO_URL}
+                      src={activeLogoSrc}
                       alt={ORG_NAME}
                       variant="compact"
                       className="border border-white/60 bg-white"
@@ -264,7 +266,17 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                   </div>
 
                   {/* ID Body */}
-                  <div className="p-5 space-y-4">
+                  <div className="relative overflow-hidden p-5 space-y-4">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+                    >
+                      <img
+                        src={activeLogoSrc}
+                        alt=""
+                        className="h-52 w-52 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+                      />
+                    </div>
                     <div className="flex flex-col items-center text-center">
                       <OrgLogo
                         src={avatarSrc}
@@ -332,7 +344,17 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 p-6">
+              <div className="relative overflow-hidden space-y-6 p-6">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+                >
+                  <img
+                    src={activeLogoSrc}
+                    alt=""
+                    className="h-72 w-72 sm:h-88 sm:w-88 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+                  />
+                </div>
                 {/* Personal Details */}
                 <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2 text-sm">
                   <div className="flex items-start gap-2.5">

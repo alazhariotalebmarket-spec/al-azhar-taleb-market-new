@@ -1,11 +1,20 @@
 import { Member, ORG_NAME, OrganizationData, Transaction } from '../types';
+import {
+  canvasToPngBlob,
+  drawCenteredLogoWatermark,
+  loadCachedLogoImage,
+  mergeCanvasesVertically,
+  ORG_WATERMARK_LOGO_FALLBACK,
+} from './watermarkUtils';
 
 export interface GeneratedBackupBundle {
   timestampSlug: string;
   formattedDateTime: string;
   membersPdf: { name: string; mimeType: string; blob: Blob };
+  membersImage: { name: string; mimeType: string; blob: Blob };
   membersExcel: { name: string; mimeType: string; blob: Blob };
   financePdf: { name: string; mimeType: string; blob: Blob };
+  financeImage: { name: string; mimeType: string; blob: Blob };
   financeExcel: { name: string; mimeType: string; blob: Blob };
   fullJson: { name: string; mimeType: string; blob: Blob };
 }
@@ -57,14 +66,15 @@ function drawWrappedText(
   ctx.textAlign = 'left';
 }
 
-async function renderReportToPdfBlob(options: {
+async function renderReportToCanvases(options: {
   title: string;
   subtitle: string;
   generatedAt: string;
+  logoUrl?: string;
   summaryItems: { label: string; value: string; accent?: string }[];
   columns: TableColumn[];
   rows: string[][];
-}): Promise<Blob> {
+}): Promise<HTMLCanvasElement[]> {
   if (typeof document !== 'undefined' && 'fonts' in document && document.fonts?.ready) {
     try {
       await document.fonts.ready;
@@ -72,7 +82,6 @@ async function renderReportToPdfBlob(options: {
       // Continue even if font ready check fails
     }
   }
-  const { jsPDF } = await import('jspdf');
 
   // A4 at ~150 DPI for crisp Unicode Bengali rendering
   const pageWidth = 1240;
@@ -82,12 +91,7 @@ async function renderReportToPdfBlob(options: {
   const rowHeight = 52;
   const headerHeight = 50;
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-    compress: true,
-  });
+  const loadedLogo = await loadCachedLogoImage(options.logoUrl || ORG_WATERMARK_LOGO_FALLBACK);
 
   const totalRows = options.rows.length;
   const firstPageStartY = 390;
@@ -110,6 +114,7 @@ async function renderReportToPdfBlob(options: {
   }
 
   const totalPages = chunks.length;
+  const canvases: HTMLCanvasElement[] = [];
 
   chunks.forEach((pageRows, pageIndex) => {
     const canvas = document.createElement('canvas');
@@ -255,14 +260,36 @@ async function renderReportToPdfBlob(options: {
     ctx.fillText(`পৃষ্ঠা ${pageIndex + 1} / ${totalPages}`, pageWidth - marginX, pageHeight - 40);
     ctx.textAlign = 'left';
 
+    // Centered light transparent logo watermark on every page
+    drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo);
+
+    canvases.push(canvas);
+  });
+
+  return canvases;
+}
+
+async function canvasesToPdfBlob(canvases: HTMLCanvasElement[]): Promise<Blob> {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    compress: true,
+  });
+  canvases.forEach((canvas, pageIndex) => {
     const imgData = canvas.toDataURL('image/jpeg', 0.94);
     if (pageIndex > 0) {
       doc.addPage();
     }
     doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
   });
-
   return doc.output('blob');
+}
+
+async function canvasesToImageBlob(canvases: HTMLCanvasElement[]): Promise<Blob> {
+  const merged = mergeCanvasesVertically(canvases);
+  return canvasToPngBlob(merged);
 }
 
 async function generateMembersExcelBlob(members: Member[], generatedAt: string): Promise<Blob> {
@@ -367,18 +394,15 @@ async function generateFinanceExcelBlob(transactions: Transaction[], generatedAt
   });
 }
 
-export async function generateBackupBundle(data: OrganizationData): Promise<GeneratedBackupBundle> {
-  const now = new Date();
-  const timestampSlug = formatTimestampSlug(now);
-  const formattedDateTime = formatDateTimeBn(now);
-
+function buildMembersReportConfig(data: OrganizationData, formattedDateTime: string) {
   const activeMembers = data.members.filter((m) => m.status === 'সক্রিয়').length;
   const totalMonthlyFee = data.members.reduce((sum, m) => sum + m.monthlyFee, 0);
 
-  const membersPdfBlob = await renderReportToPdfBlob({
+  return {
     title: 'সদস্যদের পূর্ণাঙ্গ তালিকা (Members List)',
     subtitle: `মোট সদস্য: ${data.members.length} জন`,
     generatedAt: formattedDateTime,
+    logoUrl: data.logoUrl,
     summaryItems: [
       { label: 'মোট সদস্য সংখ্যা', value: `${data.members.length} জন`, accent: '#0f172a' },
       { label: 'সক্রিয় সদস্য', value: `${activeMembers} জন`, accent: '#047857' },
@@ -390,7 +414,7 @@ export async function generateBackupBundle(data: OrganizationData): Promise<Gene
       { header: 'পিতার নাম', width: 215 },
       { header: 'পদবি ও রক্ত', width: 195 },
       { header: 'মোবাইল', width: 165 },
-      { header: 'এয়ানত', width: 177, align: 'right' },
+      { header: 'এয়ানত', width: 177, align: 'right' as const },
     ],
     rows: data.members.map((m) => [
       m.memberCode,
@@ -400,41 +424,140 @@ export async function generateBackupBundle(data: OrganizationData): Promise<Gene
       m.phone,
       formatTaka(m.monthlyFee),
     ]),
-  });
+  };
+}
 
-  const membersExcelBlob = await generateMembersExcelBlob(data.members, formattedDateTime);
-
+function buildFinanceReportConfig(data: OrganizationData, formattedDateTime: string) {
   const sortedTx = [...data.transactions].sort((a, b) => b.date.localeCompare(a.date));
   const totalIncome = sortedTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = sortedTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const netBalance = totalIncome - totalExpense;
 
-  const financePdfBlob = await renderReportToPdfBlob({
-    title: 'আয়-ব্যয়ের পূর্ণাঙ্গ হিসাব (Income & Expense)',
-    subtitle: `মোট লেনদেন: ${sortedTx.length} টি`,
-    generatedAt: formattedDateTime,
-    summaryItems: [
-      { label: 'মোট আয়', value: formatTaka(totalIncome), accent: '#047857' },
-      { label: 'মোট ব্যয়', value: formatTaka(totalExpense), accent: '#b91c1c' },
-      { label: 'বর্তমান স্থিতি', value: formatTaka(netBalance), accent: '#0f172a' },
-    ],
-    columns: [
-      { header: 'তারিখ', width: 145 },
-      { header: 'রসিদ নং', width: 165 },
-      { header: 'ধরন', width: 100 },
-      { header: 'খাত ও বিবরণ', width: 500 },
-      { header: 'পরিমাণ', width: 202, align: 'right' },
-    ],
-    rows: sortedTx.map((t) => [
-      t.date,
-      t.receiptNo,
-      t.type === 'income' ? 'আয়' : 'ব্যয়',
-      `${t.category} — ${t.description}`,
-      `${t.type === 'income' ? '+' : '-'} ${formatTaka(t.amount)}`,
-    ]),
-  });
+  return {
+    sortedTx,
+    totalIncome,
+    totalExpense,
+    netBalance,
+    reportOptions: {
+      title: 'আয়-ব্যয়ের পূর্ণাঙ্গ হিসাব (Income & Expense)',
+      subtitle: `মোট লেনদেন: ${sortedTx.length} টি`,
+      generatedAt: formattedDateTime,
+      logoUrl: data.logoUrl,
+      summaryItems: [
+        { label: 'মোট আয়', value: formatTaka(totalIncome), accent: '#047857' },
+        { label: 'মোট ব্যয়', value: formatTaka(totalExpense), accent: '#b91c1c' },
+        { label: 'বর্তমান স্থিতি', value: formatTaka(netBalance), accent: '#0f172a' },
+      ],
+      columns: [
+        { header: 'তারিখ', width: 145 },
+        { header: 'রসিদ নং', width: 165 },
+        { header: 'ধরন', width: 100 },
+        { header: 'খাত ও বিবরণ', width: 500 },
+        { header: 'পরিমাণ', width: 202, align: 'right' as const },
+      ],
+      rows: sortedTx.map((t) => [
+        t.date,
+        t.receiptNo,
+        t.type === 'income' ? 'আয়' : 'ব্যয়',
+        `${t.category} — ${t.description}`,
+        `${t.type === 'income' ? '+' : '-'} ${formatTaka(t.amount)}`,
+      ]),
+    },
+  };
+}
 
-  const financeExcelBlob = await generateFinanceExcelBlob(data.transactions, formattedDateTime);
+export async function generateFinanceReportDownload(
+  data: OrganizationData,
+  format: 'pdf' | 'image' | 'xlsx'
+): Promise<{ name: string; mimeType: string; blob: Blob }> {
+  const now = new Date();
+  const timestampSlug = formatTimestampSlug(now);
+  const formattedDateTime = formatDateTimeBn(now);
+
+  if (format === 'xlsx') {
+    const blob = await generateFinanceExcelBlob(data.transactions, formattedDateTime);
+    return {
+      name: `${ORG_NAME} - Income Expense (${timestampSlug}).xlsx`,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      blob,
+    };
+  }
+
+  const { reportOptions } = buildFinanceReportConfig(data, formattedDateTime);
+  const canvases = await renderReportToCanvases(reportOptions);
+
+  if (format === 'image') {
+    const blob = await canvasesToImageBlob(canvases);
+    return {
+      name: `${ORG_NAME} - Income Expense (${timestampSlug}).png`,
+      mimeType: 'image/png',
+      blob,
+    };
+  }
+
+  const blob = await canvasesToPdfBlob(canvases);
+  return {
+    name: `${ORG_NAME} - Income Expense (${timestampSlug}).pdf`,
+    mimeType: 'application/pdf',
+    blob,
+  };
+}
+
+export async function generateBackupImageReports(
+  data: OrganizationData
+): Promise<{ name: string; mimeType: string; blob: Blob }[]> {
+  const now = new Date();
+  const timestampSlug = formatTimestampSlug(now);
+  const formattedDateTime = formatDateTimeBn(now);
+
+  const membersConfig = buildMembersReportConfig(data, formattedDateTime);
+  const financeConfig = buildFinanceReportConfig(data, formattedDateTime);
+
+  const [membersCanvases, financeCanvases] = await Promise.all([
+    renderReportToCanvases(membersConfig),
+    renderReportToCanvases(financeConfig.reportOptions),
+  ]);
+
+  const [membersImageBlob, financeImageBlob] = await Promise.all([
+    canvasesToImageBlob(membersCanvases),
+    canvasesToImageBlob(financeCanvases),
+  ]);
+
+  return [
+    {
+      name: `${ORG_NAME} - Members List (${timestampSlug}).png`,
+      mimeType: 'image/png',
+      blob: membersImageBlob,
+    },
+    {
+      name: `${ORG_NAME} - Income Expense (${timestampSlug}).png`,
+      mimeType: 'image/png',
+      blob: financeImageBlob,
+    },
+  ];
+}
+
+export async function generateBackupBundle(data: OrganizationData): Promise<GeneratedBackupBundle> {
+  const now = new Date();
+  const timestampSlug = formatTimestampSlug(now);
+  const formattedDateTime = formatDateTimeBn(now);
+
+  const membersConfig = buildMembersReportConfig(data, formattedDateTime);
+  const financeConfig = buildFinanceReportConfig(data, formattedDateTime);
+
+  const [membersCanvases, financeCanvases, membersExcelBlob, financeExcelBlob] = await Promise.all([
+    renderReportToCanvases(membersConfig),
+    renderReportToCanvases(financeConfig.reportOptions),
+    generateMembersExcelBlob(data.members, formattedDateTime),
+    generateFinanceExcelBlob(data.transactions, formattedDateTime),
+  ]);
+
+  const [membersPdfBlob, membersImageBlob, financePdfBlob, financeImageBlob] = await Promise.all([
+    canvasesToPdfBlob(membersCanvases),
+    canvasesToImageBlob(membersCanvases),
+    canvasesToPdfBlob(financeCanvases),
+    canvasesToImageBlob(financeCanvases),
+  ]);
 
   const jsonPayload = {
     organization: ORG_NAME,
@@ -446,9 +569,9 @@ export async function generateBackupBundle(data: OrganizationData): Promise<Gene
       totalTransactions: data.transactions.length,
       totalNotices: data.notices.length,
       totalProjects: data.projects.length,
-      totalIncome,
-      totalExpense,
-      netBalance,
+      totalIncome: financeConfig.totalIncome,
+      totalExpense: financeConfig.totalExpense,
+      netBalance: financeConfig.netBalance,
     },
     members: data.members,
     advisors: data.advisors,
@@ -472,6 +595,11 @@ export async function generateBackupBundle(data: OrganizationData): Promise<Gene
       mimeType: 'application/pdf',
       blob: membersPdfBlob,
     },
+    membersImage: {
+      name: `${ORG_NAME} - Members List (${timestampSlug}).png`,
+      mimeType: 'image/png',
+      blob: membersImageBlob,
+    },
     membersExcel: {
       name: `${ORG_NAME} - Members List (${timestampSlug}).xlsx`,
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -481,6 +609,11 @@ export async function generateBackupBundle(data: OrganizationData): Promise<Gene
       name: `${ORG_NAME} - Income Expense (${timestampSlug}).pdf`,
       mimeType: 'application/pdf',
       blob: financePdfBlob,
+    },
+    financeImage: {
+      name: `${ORG_NAME} - Income Expense (${timestampSlug}).png`,
+      mimeType: 'image/png',
+      blob: financeImageBlob,
     },
     financeExcel: {
       name: `${ORG_NAME} - Income Expense (${timestampSlug}).xlsx`,

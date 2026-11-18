@@ -1,20 +1,11 @@
-import { DEFAULT_LOGO_URL, Notice, ORG_NAME, ORG_TAGLINE } from '../types';
+import { Notice, ORG_NAME, ORG_TAGLINE } from '../types';
 import { ORG_CONTACT } from './contactConfig';
-
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
-      setTimeout(() => resolve(null), 1200);
-    } catch {
-      resolve(null);
-    }
-  });
-}
+import {
+  canvasToPngBlob,
+  drawCenteredLogoWatermark,
+  loadCachedLogoImage,
+  ORG_WATERMARK_LOGO_FALLBACK,
+} from './watermarkUtils';
 
 function getWrappedLines(
   ctx: CanvasRenderingContext2D,
@@ -75,10 +66,14 @@ export function getNoticePdfFileName(notice: Notice): string {
   return `${prefix}-${datePart}.pdf`;
 }
 
-export async function generateNoticePdfBlob(
+export function getNoticeImageFileName(notice: Notice): string {
+  return getNoticePdfFileName(notice).replace(/\.pdf$/i, '.png');
+}
+
+async function renderNoticeCanvas(
   notice: Notice,
   logoUrl?: string
-): Promise<{ blob: Blob; fileName: string }> {
+): Promise<HTMLCanvasElement> {
   // Ensure Bengali web fonts are fully loaded
   if (typeof document !== 'undefined' && 'fonts' in document && document.fonts?.ready) {
     try {
@@ -111,8 +106,8 @@ export async function generateNoticePdfBlob(
   ctx.fillRect(0, 0, pageWidth, 20);
 
   // 1. Institutional Header
-  const activeLogo = logoUrl || DEFAULT_LOGO_URL;
-  const loadedLogo = activeLogo ? await loadImage(activeLogo) : null;
+  const activeLogo = logoUrl || ORG_WATERMARK_LOGO_FALLBACK;
+  const loadedLogo = await loadCachedLogoImage(activeLogo);
 
   const headerY = 56;
   const logoSize = 100;
@@ -366,8 +361,21 @@ export async function generateNoticePdfBlob(
   ctx.fillStyle = '#065f46';
   ctx.fillRect(0, pageHeight - 16, pageWidth, 16);
 
-  // Convert canvas to image and add to jsPDF
-  const { jsPDF } = await import('jspdf');
+  // Centered subtle organization logo watermark
+  drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo);
+
+  return canvas;
+}
+
+export async function generateNoticePdfBlob(
+  notice: Notice,
+  logoUrl?: string
+): Promise<{ blob: Blob; fileName: string }> {
+  const [canvas, { jsPDF }] = await Promise.all([
+    renderNoticeCanvas(notice, logoUrl),
+    import('jspdf'),
+  ]);
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -382,4 +390,16 @@ export async function generateNoticePdfBlob(
   const blob = doc.output('blob');
 
   return { blob, fileName };
+}
+
+export async function generateNoticeImageBlob(
+  notice: Notice,
+  logoUrl?: string
+): Promise<{ blob: Blob; fileName: string }> {
+  const canvas = await renderNoticeCanvas(notice, logoUrl);
+  const blob = await canvasToPngBlob(canvas);
+  return {
+    blob,
+    fileName: getNoticeImageFileName(notice),
+  };
 }

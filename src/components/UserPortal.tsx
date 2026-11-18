@@ -11,6 +11,7 @@ import {
   Eye,
   FileText,
   HeartHandshake,
+  Image as ImageIcon,
   Lock,
   LogOut,
   Mail,
@@ -27,6 +28,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
+import { triggerBlobDownload } from '../services/watermarkUtils';
 import {
   DEFAULT_LOGO_URL,
   DonationRequest,
@@ -304,39 +306,65 @@ export const UserPortal: React.FC<UserPortalProps> = ({
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [filteredTransactions]);
 
-  const handleDownloadFinanceReport = async (format: 'pdf' | 'xlsx') => {
-    const { generateBackupBundle } = await import('../services/backupGenerators');
-    const bundle = await generateBackupBundle(data);
-    const target = format === 'pdf' ? bundle.financePdf : bundle.financeExcel;
-    const url = URL.createObjectURL(target.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = target.name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  const [downloadingFinanceFormat, setDownloadingFinanceFormat] = useState<
+    'pdf' | 'image' | 'xlsx' | null
+  >(null);
+
+  const handleDownloadFinanceReport = async (format: 'pdf' | 'image' | 'xlsx') => {
+    try {
+      setDownloadingFinanceFormat(format);
+      const { generateFinanceReportDownload } = await import('../services/backupGenerators');
+      const target = await generateFinanceReportDownload(data, format);
+      triggerBlobDownload(target.blob, target.name);
+    } catch (err) {
+      console.error('Failed to download finance report:', err);
+    } finally {
+      setDownloadingFinanceFormat(null);
+    }
   };
 
   const [downloadingNoticeId, setDownloadingNoticeId] = useState<string | null>(null);
+  const [downloadingNoticeImageId, setDownloadingNoticeImageId] = useState<string | null>(null);
+  const [downloadingDocImageKey, setDownloadingDocImageKey] = useState<string | null>(null);
 
   const handleDownloadNoticePdf = async (notice: Notice) => {
     try {
       setDownloadingNoticeId(notice.id);
       const { generateNoticePdfBlob } = await import('../services/noticePdfGenerator');
       const { blob, fileName } = await generateNoticePdfBlob(notice, data.logoUrl);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      triggerBlobDownload(blob, fileName);
     } catch (err) {
       console.error('Failed to generate notice PDF:', err);
     } finally {
       setDownloadingNoticeId(null);
+    }
+  };
+
+  const handleDownloadNoticeImage = async (notice: Notice) => {
+    try {
+      setDownloadingNoticeImageId(notice.id);
+      const { generateNoticeImageBlob } = await import('../services/noticePdfGenerator');
+      const { blob, fileName } = await generateNoticeImageBlob(notice, data.logoUrl);
+      triggerBlobDownload(blob, fileName);
+    } catch (err) {
+      console.error('Failed to generate notice image:', err);
+    } finally {
+      setDownloadingNoticeImageId(null);
+    }
+  };
+
+  const handleDownloadPayloadImage = async (key: string, payload: PdfPrintPayload) => {
+    try {
+      setDownloadingDocImageKey(key);
+      const { generateDonationProjectImageBlob } = await import(
+        '../services/donationProjectPdfGenerator'
+      );
+      const { blob, fileName } = await generateDonationProjectImageBlob(payload, data.logoUrl);
+      triggerBlobDownload(blob, fileName);
+    } catch (err) {
+      console.error('Failed to generate document image:', err);
+    } finally {
+      setDownloadingDocImageKey(null);
     }
   };
 
@@ -1276,18 +1304,34 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                         </div>
 
                         {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadNoticePdf(notice)}
-                            disabled={downloadingNoticeId === notice.id}
-                            className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 sm:py-1.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shrink-0 self-start"
-                            title="পিডিএফ ডাউনলোড করুন"
-                          >
-                            <Download className="h-3.5 w-3.5 text-emerald-700" />
-                            <span>
-                              {downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড করুন'}
-                            </span>
-                          </button>
+                          <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 shrink-0 self-start">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadNoticePdf(notice)}
+                              disabled={downloadingNoticeId === notice.id}
+                              className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 sm:py-1.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors"
+                              title="পিডিএফ ডাউনলোড করুন"
+                            >
+                              <Download className="h-3.5 w-3.5 text-emerald-700" />
+                              <span>
+                                {downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadNoticeImage(notice)}
+                              disabled={downloadingNoticeImageId === notice.id}
+                              className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3.5 py-2.5 sm:py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                              title="ইমেজ ডাউনলোড করুন"
+                            >
+                              <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                              <span>
+                                {downloadingNoticeImageId === notice.id
+                                  ? 'তৈরি হচ্ছে...'
+                                  : 'ইমেজ ডাউনলোড'}
+                              </span>
+                            </button>
+                          </div>
                         )}
                       </div>
                     </article>
@@ -1342,6 +1386,25 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                                 )
                             : undefined
                         }
+                        onDownloadProjectImage={
+                          isAdmin
+                            ? (p) =>
+                                void handleDownloadPayloadImage(
+                                  `project-${p.id}`,
+                                  buildProjectPdfPayload(p, orgFinanceSummary)
+                                )
+                            : undefined
+                        }
+                        onDownloadDonorImage={
+                          isAdmin
+                            ? (p, donor, idx) =>
+                                void handleDownloadPayloadImage(
+                                  `donor-${p.id}-${idx}`,
+                                  buildDonorPdfPayload(p, donor, idx, orgFinanceSummary)
+                                )
+                            : undefined
+                        }
+                        downloadingImageKey={downloadingDocImageKey}
                       />
                     ))}
                   </div>
@@ -1406,6 +1469,25 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                               )
                           : undefined
                       }
+                      onDownloadProjectImage={
+                        isAdmin
+                          ? (p) =>
+                              void handleDownloadPayloadImage(
+                                `project-${p.id}`,
+                                buildProjectPdfPayload(p, orgFinanceSummary)
+                              )
+                          : undefined
+                      }
+                      onDownloadDonorImage={
+                        isAdmin
+                          ? (p, donor, idx) =>
+                              void handleDownloadPayloadImage(
+                                `donor-${p.id}-${idx}`,
+                                buildDonorPdfPayload(p, donor, idx, orgFinanceSummary)
+                              )
+                          : undefined
+                      }
+                      downloadingImageKey={downloadingDocImageKey}
                     />
                   ))}
                 </div>
@@ -1871,15 +1953,26 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDownloadFinanceReport('pdf')}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                  disabled={downloadingFinanceFormat !== null}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 whitespace-nowrap"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  PDF রিপোর্ট
+                  {downloadingFinanceFormat === 'pdf' ? 'তৈরি হচ্ছে...' : 'PDF রিপোর্ট'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadFinanceReport('image')}
+                  disabled={downloadingFinanceFormat !== null}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 whitespace-nowrap"
+                >
+                  <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                  {downloadingFinanceFormat === 'image' ? 'তৈরি হচ্ছে...' : 'ইমেজ রিপোর্ট'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDownloadFinanceReport('xlsx')}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                  disabled={downloadingFinanceFormat !== null}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 whitespace-nowrap"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Excel রিপোর্ট
@@ -2007,19 +2100,38 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                           <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                             <span>{tx.description}</span>
                             {isAdmin && tx.type === 'income' && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPdfPreviewPayload(
-                                    buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
-                                  )
-                                }
-                                className="no-print inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100"
-                                title="দাতার PDF / প্রিন্ট"
-                              >
-                                <FileText className="h-3 w-3 text-emerald-700" />
-                                <span>PDF</span>
-                              </button>
+                              <div className="no-print inline-flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPdfPreviewPayload(
+                                      buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                    )
+                                  }
+                                  className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100"
+                                  title="দাতার PDF / প্রিন্ট"
+                                >
+                                  <FileText className="h-3 w-3 text-emerald-700" />
+                                  <span>PDF</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleDownloadPayloadImage(
+                                      `tx-${tx.id}`,
+                                      buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                    )
+                                  }
+                                  disabled={downloadingDocImageKey === `tx-${tx.id}`}
+                                  className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60"
+                                  title="দাতার ইমেজ ডাউনলোড"
+                                >
+                                  <ImageIcon className="h-3 w-3 text-blue-700" />
+                                  <span>
+                                    {downloadingDocImageKey === `tx-${tx.id}` ? '...' : 'ইমেজ'}
+                                  </span>
+                                </button>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -2033,19 +2145,36 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                         <td className="px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1.5">
                             {isAdmin && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPdfPreviewPayload(
-                                    buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
-                                  )
-                                }
-                                className="no-print inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
-                                title="PDF / প্রিন্ট করুন"
-                              >
-                                <Printer className="h-3.5 w-3.5 text-emerald-700" />
-                                PDF / প্রিন্ট
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPdfPreviewPayload(
+                                      buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                    )
+                                  }
+                                  className="no-print inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                                  title="PDF / প্রিন্ট করুন"
+                                >
+                                  <Printer className="h-3.5 w-3.5 text-emerald-700" />
+                                  PDF / প্রিন্ট
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleDownloadPayloadImage(
+                                      `tx-${tx.id}`,
+                                      buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                    )
+                                  }
+                                  disabled={downloadingDocImageKey === `tx-${tx.id}`}
+                                  className="no-print inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60"
+                                  title="ইমেজ ডাউনলোড করুন"
+                                >
+                                  <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                                  {downloadingDocImageKey === `tx-${tx.id}` ? '...' : 'ইমেজ'}
+                                </button>
+                              </>
                             )}
                             <button
                               type="button"
@@ -2129,18 +2258,34 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                     </div>
 
                     {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadNoticePdf(notice)}
-                        disabled={downloadingNoticeId === notice.id}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shadow-2xs"
-                        title="পিডিএফ ডাউনলোড করুন"
-                      >
-                        <Download className="h-3.5 w-3.5 text-emerald-700" />
-                        <span>
-                          {downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড করুন'}
-                        </span>
-                      </button>
+                      <div className="inline-flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadNoticePdf(notice)}
+                          disabled={downloadingNoticeId === notice.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 transition-colors shadow-2xs"
+                          title="পিডিএফ ডাউনলোড করুন"
+                        >
+                          <Download className="h-3.5 w-3.5 text-emerald-700" />
+                          <span>
+                            {downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড'}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadNoticeImage(notice)}
+                          disabled={downloadingNoticeImageId === notice.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors shadow-2xs"
+                          title="ইমেজ ডাউনলোড করুন"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                          <span>
+                            {downloadingNoticeImageId === notice.id
+                              ? 'তৈরি হচ্ছে...'
+                              : 'ইমেজ ডাউনলোড'}
+                          </span>
+                        </button>
+                      </div>
                     )}
                   </div>
                   <h2 className="mt-2 font-display text-lg font-bold text-slate-900">

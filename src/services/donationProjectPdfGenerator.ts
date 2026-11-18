@@ -1,5 +1,4 @@
 import {
-  DEFAULT_LOGO_URL,
   DonationRequest,
   ORG_NAME,
   ORG_TAGLINE,
@@ -8,6 +7,12 @@ import {
   WelfareProject,
 } from '../types';
 import { ORG_CONTACT } from './contactConfig';
+import {
+  canvasToPngBlob,
+  drawCenteredLogoWatermark,
+  loadCachedLogoImage,
+  ORG_WATERMARK_LOGO_FALLBACK,
+} from './watermarkUtils';
 
 export interface OrgFinanceSummary {
   totalIncome: number;
@@ -173,20 +178,7 @@ export function buildTransactionDonationPdfPayload(
   };
 }
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
-      setTimeout(() => resolve(null), 1200);
-    } catch {
-      resolve(null);
-    }
-  });
-}
+
 
 function getWrappedLines(
   ctx: CanvasRenderingContext2D,
@@ -230,10 +222,14 @@ export function getPdfFileName(payload: PdfPrintPayload): string {
   return `${prefix}-${safeDate}.pdf`;
 }
 
-export async function generateDonationProjectPdfBlob(
+export function getImageFileName(payload: PdfPrintPayload): string {
+  return getPdfFileName(payload).replace(/\.pdf$/i, '.png');
+}
+
+async function renderDonationProjectCanvas(
   payload: PdfPrintPayload,
   logoUrl?: string
-): Promise<{ blob: Blob; fileName: string }> {
+): Promise<HTMLCanvasElement> {
   if (typeof document !== 'undefined' && 'fonts' in document && document.fonts?.ready) {
     try {
       await document.fonts.ready;
@@ -262,8 +258,8 @@ export async function generateDonationProjectPdfBlob(
   ctx.fillRect(0, 0, pageWidth, 18);
 
   // 1. Org Header (Logo + Name + Tagline + Address)
-  const activeLogo = logoUrl || DEFAULT_LOGO_URL;
-  const loadedLogo = activeLogo ? await loadImage(activeLogo) : null;
+  const activeLogo = logoUrl || ORG_WATERMARK_LOGO_FALLBACK;
+  const loadedLogo = await loadCachedLogoImage(activeLogo);
 
   const headerY = 48;
   const logoSize = 96;
@@ -703,7 +699,21 @@ export async function generateDonationProjectPdfBlob(
   ctx.fillStyle = '#065f46';
   ctx.fillRect(0, pageHeight - 14, pageWidth, 14);
 
-  const { jsPDF } = await import('jspdf');
+  // Centered subtle organization logo watermark
+  drawCenteredLogoWatermark(ctx, pageWidth, pageHeight, loadedLogo);
+
+  return canvas;
+}
+
+export async function generateDonationProjectPdfBlob(
+  payload: PdfPrintPayload,
+  logoUrl?: string
+): Promise<{ blob: Blob; fileName: string }> {
+  const [canvas, { jsPDF }] = await Promise.all([
+    renderDonationProjectCanvas(payload, logoUrl),
+    import('jspdf'),
+  ]);
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -717,4 +727,16 @@ export async function generateDonationProjectPdfBlob(
   const fileName = getPdfFileName(payload);
   const blob = doc.output('blob');
   return { blob, fileName };
+}
+
+export async function generateDonationProjectImageBlob(
+  payload: PdfPrintPayload,
+  logoUrl?: string
+): Promise<{ blob: Blob; fileName: string }> {
+  const canvas = await renderDonationProjectCanvas(payload, logoUrl);
+  const blob = await canvasToPngBlob(canvas);
+  return {
+    blob,
+    fileName: getImageFileName(payload),
+  };
 }

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, X } from 'lucide-react';
-import { BENGALI_MONTHS, DEFAULT_LOGO_URL, Member, ORG_NAME, ORG_TAGLINE } from '../types';
+import { BENGALI_MONTHS, Member, ORG_NAME, ORG_TAGLINE } from '../types';
 import { ORG_CONTACT } from '../services/contactConfig';
+import { ORG_WATERMARK_LOGO_FALLBACK } from '../services/watermarkUtils';
 import { OrgLogo } from './OrgLogo';
 
 interface MemberAnnualEyanotPrintModalProps {
@@ -97,7 +98,7 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
 
   if (!member) return null;
 
-  const activeLogoSrc = orgLogoUrl || DEFAULT_LOGO_URL;
+  const activeLogoSrc = orgLogoUrl || ORG_WATERMARK_LOGO_FALLBACK;
   const memberPhotoSrc = member.photoUrl || activeLogoSrc;
 
   return createPortal(
@@ -134,7 +135,18 @@ export const MemberAnnualEyanotPrintModal: React.FC<MemberAnnualEyanotPrintModal
         </div>
 
         {/* Printable Single-Member Annual Eyanot Report */}
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="relative overflow-hidden p-6 sm:p-8 space-y-6">
+          {/* Centered Transparent Organization Logo Watermark */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+          >
+            <img
+              src={activeLogoSrc}
+              alt=""
+              className="h-72 w-72 sm:h-88 sm:w-88 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+            />
+          </div>
           {/* Organization Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div className="flex items-center gap-3.5 min-w-0">

@@ -17,6 +17,9 @@ interface AdminProjectsTabProps {
   ) => void;
   onPrintProject?: (project: WelfareProject) => void;
   onPrintDonor?: (project: WelfareProject, donor: ProjectLedgerItem, index: number) => void;
+  onDownloadProjectImage?: (project: WelfareProject) => void;
+  onDownloadDonorImage?: (project: WelfareProject, donor: ProjectLedgerItem, index: number) => void;
+  downloadingImageKey?: string | null;
 }
 
 const STATUS_OPTIONS: WelfareProjectStatus[] = ['চলমান', 'সম্পন্ন', 'পরিকল্পিত'];
@@ -26,6 +29,9 @@ export const AdminProjectsTab: React.FC<AdminProjectsTabProps> = ({
   onMutateData,
   onPrintProject,
   onPrintDonor,
+  onDownloadProjectImage,
+  onDownloadDonorImage,
+  downloadingImageKey,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<WelfareProject | null>(null);
@@ -149,6 +155,9 @@ export const AdminProjectsTab: React.FC<AdminProjectsTabProps> = ({
               onDelete={setDeleteTarget}
               onPrintProject={onPrintProject}
               onPrintDonor={onPrintDonor}
+              onDownloadProjectImage={onDownloadProjectImage}
+              onDownloadDonorImage={onDownloadDonorImage}
+              downloadingImageKey={downloadingImageKey}
             />
           ))}
         </div>

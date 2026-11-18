@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, Printer, X } from 'lucide-react';
-import { DEFAULT_LOGO_URL, ORG_NAME, ORG_TAGLINE } from '../types';
+import { Download, Image as ImageIcon, Printer, X } from 'lucide-react';
+import { ORG_NAME, ORG_TAGLINE } from '../types';
 import { ORG_CONTACT } from '../services/contactConfig';
 import {
+  generateDonationProjectImageBlob,
   generateDonationProjectPdfBlob,
   PdfPrintPayload,
 } from '../services/donationProjectPdfGenerator';
+import {
+  ORG_WATERMARK_LOGO_FALLBACK,
+  triggerBlobDownload,
+} from '../services/watermarkUtils';
 import { OrgLogo } from './OrgLogo';
 
 interface PdfPrintPreviewModalProps {
@@ -20,7 +25,8 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
   orgLogoUrl,
   onClose,
 }) => {
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingImage, setDownloadingImage] = useState(false);
 
   useEffect(() => {
     if (!payload) return;
@@ -32,24 +38,29 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
 
   if (!payload) return null;
 
-  const activeLogoSrc = orgLogoUrl || DEFAULT_LOGO_URL;
+  const activeLogoSrc = orgLogoUrl || ORG_WATERMARK_LOGO_FALLBACK;
 
   const handleDownloadPdf = async () => {
     try {
-      setDownloading(true);
-      const { blob, fileName } = await generateDonationProjectPdfBlob(payload, orgLogoUrl);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      setDownloadingPdf(true);
+      const { blob, fileName } = await generateDonationProjectPdfBlob(payload, activeLogoSrc);
+      triggerBlobDownload(blob, fileName);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
     } finally {
-      setDownloading(false);
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    try {
+      setDownloadingImage(true);
+      const { blob, fileName } = await generateDonationProjectImageBlob(payload, activeLogoSrc);
+      triggerBlobDownload(blob, fileName);
+    } catch (err) {
+      console.error('Failed to generate image:', err);
+    } finally {
+      setDownloadingImage(false);
     }
   };
 
@@ -63,15 +74,24 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
               {payload.documentTitle} — প্রিন্ট ও PDF প্রিভিউ
             </h3>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleDownloadPdf}
-              disabled={downloading}
+              disabled={downloadingPdf}
               className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 disabled:opacity-60"
             >
               <Download className="h-3.5 w-3.5" />
-              {downloading ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড'}
+              {downloadingPdf ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadImage}
+              disabled={downloadingImage}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              {downloadingImage ? 'তৈরি হচ্ছে...' : 'ইমেজ ডাউনলোড'}
             </button>
             <button
               type="button"
@@ -93,7 +113,18 @@ export const PdfPrintPreviewModal: React.FC<PdfPrintPreviewModalProps> = ({
         </div>
 
         {/* Printable Document Body */}
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="relative overflow-hidden p-6 sm:p-8 space-y-6">
+          {/* Centered Transparent Organization Logo Watermark */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+          >
+            <img
+              src={activeLogoSrc}
+              alt=""
+              className="h-72 w-72 sm:h-88 sm:w-88 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+            />
+          </div>
           {/* Organization Header with Logo */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-emerald-800 pb-4">
             <div className="flex items-center gap-4">

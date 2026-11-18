@@ -8,6 +8,7 @@ import {
   FileText,
   FolderOpen,
   HardDrive,
+  Image as ImageIcon,
   Info,
   RefreshCw,
   RotateCcw,
@@ -70,6 +71,7 @@ export const GoogleDriveBackupPanel: React.FC<GoogleDriveBackupPanelProps> = ({
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<OrganizationData | null>(null);
   const [restoreFeedback, setRestoreFeedback] = useState<{ ok: boolean; message: string } | null>(null);
+  const [downloadingImages, setDownloadingImages] = useState(false);
   const { backupSettings, backupHistory } = data;
 
   const handleRestoreFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,27 +114,43 @@ export const GoogleDriveBackupPanel: React.FC<GoogleDriveBackupPanelProps> = ({
   };
 
   const handleDownloadLocalBundle = async () => {
-    const { generateBackupBundle } = await import('../services/backupGenerators');
+    const [{ generateBackupBundle }, { triggerBlobDownload }] = await Promise.all([
+      import('../services/backupGenerators'),
+      import('../services/watermarkUtils'),
+    ]);
     const bundle = await generateBackupBundle(data);
     const files = [
       bundle.membersPdf,
+      bundle.membersImage,
       bundle.membersExcel,
       bundle.financePdf,
+      bundle.financeImage,
       bundle.financeExcel,
       bundle.fullJson,
     ];
     files.forEach((f, idx) => {
       setTimeout(() => {
-        const url = URL.createObjectURL(f.blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = f.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        triggerBlobDownload(f.blob, f.name);
       }, idx * 180);
     });
+  };
+
+  const handleDownloadImageReports = async () => {
+    setDownloadingImages(true);
+    try {
+      const [{ generateBackupImageReports }, { triggerBlobDownload }] = await Promise.all([
+        import('../services/backupGenerators'),
+        import('../services/watermarkUtils'),
+      ]);
+      const files = await generateBackupImageReports(data);
+      files.forEach((f, idx) => {
+        setTimeout(() => {
+          triggerBlobDownload(f.blob, f.name);
+        }, idx * 150);
+      });
+    } finally {
+      setDownloadingImages(false);
+    }
   };
 
   return (
@@ -169,6 +187,16 @@ export const GoogleDriveBackupPanel: React.FC<GoogleDriveBackupPanelProps> = ({
           >
             <Download className="h-4 w-4" />
             অফলাইন কপি ডাউনলোড
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadImageReports}
+            disabled={downloadingImages}
+            className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-800 transition-colors hover:bg-blue-100 disabled:opacity-60 whitespace-nowrap shrink-0"
+          >
+            <ImageIcon className="h-4 w-4" />
+            {downloadingImages ? 'তৈরি হচ্ছে...' : 'ইমেজ রিপোর্ট ডাউনলোড'}
           </button>
 
           <button

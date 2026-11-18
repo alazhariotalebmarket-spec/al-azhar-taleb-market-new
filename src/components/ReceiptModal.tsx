@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, X } from 'lucide-react';
-import { DEFAULT_LOGO_URL, ORG_NAME, ORG_TAGLINE, Transaction } from '../types';
+import { ORG_NAME, ORG_TAGLINE, Transaction } from '../types';
 import { ORG_CONTACT } from '../services/contactConfig';
+import { ORG_WATERMARK_LOGO_FALLBACK } from '../services/watermarkUtils';
 import { OrgLogo } from './OrgLogo';
 
 interface ReceiptModalProps {
@@ -27,7 +28,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   if (!transaction) return null;
 
   const isIncome = transaction.type === 'income';
-  const activeLogoSrc = orgLogoUrl || DEFAULT_LOGO_URL;
+  const activeLogoSrc = orgLogoUrl || ORG_WATERMARK_LOGO_FALLBACK;
 
   return createPortal(
     <div className="print-portal-root fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-xs">
@@ -56,7 +57,18 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6 sm:p-7 space-y-5">
+        <div className="relative overflow-hidden p-6 sm:p-7 space-y-5">
+          {/* Centered Transparent Organization Logo Watermark */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute inset-0 z-10 flex items-center justify-center"
+          >
+            <img
+              src={activeLogoSrc}
+              alt=""
+              className="h-64 w-64 rounded-full object-contain opacity-[0.09] mix-blend-multiply"
+            />
+          </div>
           {/* Institutional Header */}
           <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
             <OrgLogo src={activeLogoSrc} alt={ORG_NAME} variant="compact" />

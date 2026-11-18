@@ -1,5 +1,13 @@
 import React from 'react';
-import { CheckCircle2, FileText, Pencil, Printer, Trash2, Users } from 'lucide-react';
+import {
+  CheckCircle2,
+  FileText,
+  Image as ImageIcon,
+  Pencil,
+  Printer,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { ProjectLedgerItem, WelfareProject } from '../types';
 import { PieChart } from './PieChart';
 
@@ -12,6 +20,9 @@ interface ProjectCardProps {
   onDelete?: (project: WelfareProject) => void;
   onPrintProject?: (project: WelfareProject) => void;
   onPrintDonor?: (project: WelfareProject, donor: ProjectLedgerItem, index: number) => void;
+  onDownloadProjectImage?: (project: WelfareProject) => void;
+  onDownloadDonorImage?: (project: WelfareProject, donor: ProjectLedgerItem, index: number) => void;
+  downloadingImageKey?: string | null;
   variant?: 'home' | 'page';
 }
 
@@ -24,6 +35,9 @@ function ProjectCardComponent({
   onDelete,
   onPrintProject,
   onPrintDonor,
+  onDownloadProjectImage,
+  onDownloadDonorImage,
+  downloadingImageKey,
   variant = 'page',
 }: ProjectCardProps) {
   const showPdfButtons = !hideFinancials && Boolean(canPrintPdf || isAdminView);
@@ -84,17 +98,33 @@ function ProjectCardComponent({
           </div>
 
           {(showPdfButtons && onPrintProject) || (isAdminView && (onEdit || onDelete)) ? (
-            <div className="no-print flex items-center gap-1.5 shrink-0">
+            <div className="no-print flex flex-wrap items-center gap-1.5 shrink-0">
               {showPdfButtons && onPrintProject && (
-                <button
-                  type="button"
-                  onClick={() => onPrintProject(project)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
-                  title="প্রকল্পের PDF / প্রিন্ট"
-                >
-                  <Printer className="h-3.5 w-3.5 text-emerald-700" />
-                  <span>PDF / প্রিন্ট</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onPrintProject(project)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+                    title="প্রকল্পের PDF / প্রিন্ট"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-emerald-700" />
+                    <span>PDF / প্রিন্ট</span>
+                  </button>
+                  {onDownloadProjectImage && (
+                    <button
+                      type="button"
+                      onClick={() => onDownloadProjectImage(project)}
+                      disabled={downloadingImageKey === `project-${project.id}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                      title="প্রকল্পের ইমেজ ডাউনলোড"
+                    >
+                      <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                      <span>
+                        {downloadingImageKey === `project-${project.id}` ? '...' : 'ইমেজ'}
+                      </span>
+                    </button>
+                  )}
+                </>
               )}
               {isAdminView && onEdit && (
                 <button
@@ -138,7 +168,7 @@ function ProjectCardComponent({
                       key={`${item.name}-${idx}`}
                       className="flex items-center justify-between gap-2 px-3.5 py-2 text-xs sm:text-sm hover:bg-slate-50/70"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
                         <span className="font-mono-num text-slate-500 shrink-0 w-5 text-right">
                           {idx + 1}.
                         </span>
@@ -146,15 +176,33 @@ function ProjectCardComponent({
                           {item.name}
                         </span>
                         {showPdfButtons && onPrintDonor && (
-                          <button
-                            type="button"
-                            onClick={() => onPrintDonor(project, item, idx)}
-                            className="no-print inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50/80 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100 shrink-0 transition-colors"
-                            title={`${item.name} - PDF / প্রিন্ট`}
-                          >
-                            <FileText className="h-3 w-3 text-emerald-700" />
-                            <span>PDF</span>
-                          </button>
+                          <div className="no-print inline-flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => onPrintDonor(project, item, idx)}
+                              className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50/80 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+                              title={`${item.name} - PDF / প্রিন্ট`}
+                            >
+                              <FileText className="h-3 w-3 text-emerald-700" />
+                              <span>PDF</span>
+                            </button>
+                            {onDownloadDonorImage && (
+                              <button
+                                type="button"
+                                onClick={() => onDownloadDonorImage(project, item, idx)}
+                                disabled={downloadingImageKey === `donor-${project.id}-${idx}`}
+                                className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50/80 px-1.5 py-0.5 text-[10px] font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                                title={`${item.name} - ইমেজ ডাউনলোড`}
+                              >
+                                <ImageIcon className="h-3 w-3 text-blue-700" />
+                                <span>
+                                  {downloadingImageKey === `donor-${project.id}-${idx}`
+                                    ? '...'
+                                    : 'ইমেজ'}
+                                </span>
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                       <span className="font-mono-num font-bold text-emerald-800 shrink-0 whitespace-nowrap">
@@ -321,17 +369,33 @@ function ProjectCardComponent({
             )}
           </div>
           {(showPdfButtons && onPrintProject) || (isAdminView && (onEdit || onDelete)) ? (
-            <div className="no-print flex items-center gap-1 shrink-0">
+            <div className="no-print flex flex-wrap items-center gap-1 shrink-0">
               {showPdfButtons && onPrintProject && (
-                <button
-                  type="button"
-                  onClick={() => onPrintProject(project)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
-                  title="প্রকল্পের PDF / প্রিন্ট"
-                >
-                  <Printer className="h-3.5 w-3.5 text-emerald-700" />
-                  <span>PDF / প্রিন্ট</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onPrintProject(project)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+                    title="প্রকল্পের PDF / প্রিন্ট"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-emerald-700" />
+                    <span>PDF / প্রিন্ট</span>
+                  </button>
+                  {onDownloadProjectImage && (
+                    <button
+                      type="button"
+                      onClick={() => onDownloadProjectImage(project)}
+                      disabled={downloadingImageKey === `project-${project.id}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                      title="প্রকল্পের ইমেজ ডাউনলোড"
+                    >
+                      <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                      <span>
+                        {downloadingImageKey === `project-${project.id}` ? '...' : 'ইমেজ'}
+                      </span>
+                    </button>
+                  )}
+                </>
               )}
               {isAdminView && onEdit && (
                 <button

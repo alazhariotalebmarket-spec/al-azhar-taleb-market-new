@@ -50,11 +50,13 @@ import {
   Download,
   FolderKanban,
   FolderOpen,
+  Image as ImageIcon,
   Inbox,
   ReceiptText,
   TrendingDown,
   Unplug,
 } from 'lucide-react';
+import { triggerBlobDownload } from '../services/watermarkUtils';
 import type { DriveFolderFile, DriveFolderInfo } from '../services/googleDriveBackup';
 import { AdminEyanotSheet } from './AdminEyanotSheet';
 import { AdminProjectsTab } from './AdminProjectsTab';
@@ -743,24 +745,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const [downloadingNoticeId, setDownloadingNoticeId] = useState<string | null>(null);
+  const [downloadingNoticeImageId, setDownloadingNoticeImageId] = useState<string | null>(null);
+  const [downloadingDocImageKey, setDownloadingDocImageKey] = useState<string | null>(null);
 
   const handleDownloadNoticePdf = async (notice: Notice) => {
     try {
       setDownloadingNoticeId(notice.id);
       const { generateNoticePdfBlob } = await import('../services/noticePdfGenerator');
       const { blob, fileName } = await generateNoticePdfBlob(notice, activeLogoSrc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      triggerBlobDownload(blob, fileName);
     } catch (err) {
       console.error('Failed to generate notice PDF:', err);
     } finally {
       setDownloadingNoticeId(null);
+    }
+  };
+
+  const handleDownloadNoticeImage = async (notice: Notice) => {
+    try {
+      setDownloadingNoticeImageId(notice.id);
+      const { generateNoticeImageBlob } = await import('../services/noticePdfGenerator');
+      const { blob, fileName } = await generateNoticeImageBlob(notice, activeLogoSrc);
+      triggerBlobDownload(blob, fileName);
+    } catch (err) {
+      console.error('Failed to generate notice image:', err);
+    } finally {
+      setDownloadingNoticeImageId(null);
+    }
+  };
+
+  const handleDownloadPayloadImage = async (key: string, payload: PdfPrintPayload) => {
+    try {
+      setDownloadingDocImageKey(key);
+      const { generateDonationProjectImageBlob } = await import(
+        '../services/donationProjectPdfGenerator'
+      );
+      const { blob, fileName } = await generateDonationProjectImageBlob(payload, activeLogoSrc);
+      triggerBlobDownload(blob, fileName);
+    } catch (err) {
+      console.error('Failed to generate document image:', err);
+    } finally {
+      setDownloadingDocImageKey(null);
     }
   };
 
@@ -1898,19 +1923,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                               <span>{tx.description}</span>
                               {tx.type === 'income' && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setPdfPreviewPayload(
-                                      buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
-                                    )
-                                  }
-                                  className="no-print inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100"
-                                  title="দাতার PDF / প্রিন্ট"
-                                >
-                                  <FileText className="h-3 w-3 text-emerald-700" />
-                                  <span>PDF</span>
-                                </button>
+                                <div className="no-print inline-flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPdfPreviewPayload(
+                                        buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100"
+                                    title="দাতার PDF / প্রিন্ট"
+                                  >
+                                    <FileText className="h-3 w-3 text-emerald-700" />
+                                    <span>PDF</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleDownloadPayloadImage(
+                                        `tx-${tx.id}`,
+                                        buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                      )
+                                    }
+                                    disabled={downloadingDocImageKey === `tx-${tx.id}`}
+                                    className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60"
+                                    title="দাতার ইমেজ ডাউনলোড"
+                                  >
+                                    <ImageIcon className="h-3 w-3 text-blue-700" />
+                                    <span>
+                                      {downloadingDocImageKey === `tx-${tx.id}` ? '...' : 'ইমেজ'}
+                                    </span>
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </td>
@@ -1935,6 +1979,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               >
                                 <Printer className="h-3.5 w-3.5 text-emerald-700" />
                                 PDF / প্রিন্ট
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleDownloadPayloadImage(
+                                    `tx-${tx.id}`,
+                                    buildTransactionDonationPdfPayload(tx, orgFinanceSummary)
+                                  )
+                                }
+                                disabled={downloadingDocImageKey === `tx-${tx.id}`}
+                                className="no-print inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60"
+                                title="ইমেজ ডাউনলোড করুন"
+                              >
+                                <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                                {downloadingDocImageKey === `tx-${tx.id}` ? '...' : 'ইমেজ'}
                               </button>
                               <button
                                 type="button"
@@ -1997,6 +2056,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               onPrintDonor={(project, donor, idx) =>
                 setPdfPreviewPayload(buildDonorPdfPayload(project, donor, idx, orgFinanceSummary))
               }
+              onDownloadProjectImage={(project) =>
+                void handleDownloadPayloadImage(
+                  `project-${project.id}`,
+                  buildProjectPdfPayload(project, orgFinanceSummary)
+                )
+              }
+              onDownloadDonorImage={(project, donor, idx) =>
+                void handleDownloadPayloadImage(
+                  `donor-${project.id}-${idx}`,
+                  buildDonorPdfPayload(project, donor, idx, orgFinanceSummary)
+                )
+              }
+              downloadingImageKey={downloadingDocImageKey}
             />
           )}
 
@@ -2008,6 +2080,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               onPrintDonation={(req) =>
                 setPdfPreviewPayload(buildDonationRequestPdfPayload(req, orgFinanceSummary))
               }
+              onDownloadDonationImage={(req) =>
+                void handleDownloadPayloadImage(
+                  `donation-${req.id}`,
+                  buildDonationRequestPdfPayload(req, orgFinanceSummary)
+                )
+              }
+              downloadingImageKey={downloadingDocImageKey}
             />
           )}
 
@@ -2067,7 +2146,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <p className="text-sm leading-relaxed text-slate-600">{notice.content}</p>
                       </div>
 
-                      <div className="inline-flex items-center gap-1.5 shrink-0">
+                      <div className="inline-flex flex-wrap items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleDownloadNoticePdf(notice)}
@@ -2077,6 +2156,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         >
                           <Download className="h-3.5 w-3.5 text-emerald-700" />
                           <span>{downloadingNoticeId === notice.id ? 'তৈরি হচ্ছে...' : 'PDF ডাউনলোড'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadNoticeImage(notice)}
+                          disabled={downloadingNoticeImageId === notice.id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors shadow-2xs"
+                          title="ইমেজ ডাউনলোড করুন"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                          <span>
+                            {downloadingNoticeImageId === notice.id ? 'তৈরি হচ্ছে...' : 'ইমেজ ডাউনলোড'}
+                          </span>
                         </button>
                         <button
                           type="button"

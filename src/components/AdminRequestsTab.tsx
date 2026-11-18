@@ -1,5 +1,14 @@
 import React from 'react';
-import { Check, FileText, HandHeart, Printer, Trash2, UserPlus, X } from 'lucide-react';
+import {
+  Check,
+  FileText,
+  HandHeart,
+  Image as ImageIcon,
+  Printer,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react';
 import {
   DonationRequest,
   Member,
@@ -17,6 +26,8 @@ interface AdminRequestsTabProps {
     actionDescription: string
   ) => void;
   onPrintDonation?: (req: DonationRequest) => void;
+  onDownloadDonationImage?: (req: DonationRequest) => void;
+  downloadingImageKey?: string | null;
 }
 
 const STATUS_LABEL: Record<'pending' | 'approved' | 'rejected', string> = {
@@ -30,6 +41,8 @@ export const AdminRequestsTab: React.FC<AdminRequestsTabProps> = ({
   memberApplications,
   onMutateData,
   onPrintDonation,
+  onDownloadDonationImage,
+  downloadingImageKey,
 }) => {
   const handleApproveDonation = (req: DonationRequest) => {
     const newTx: Transaction = {
@@ -190,15 +203,31 @@ export const AdminRequestsTab: React.FC<AdminRequestsTabProps> = ({
                       </span>
                     </p>
                     {onPrintDonation && (
-                      <button
-                        type="button"
-                        onClick={() => onPrintDonation(req)}
-                        className="no-print inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
-                        title={`${req.donorName} - PDF / প্রিন্ট`}
-                      >
-                        <FileText className="h-3 w-3 text-emerald-700" />
-                        <span>PDF</span>
-                      </button>
+                      <div className="no-print inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onPrintDonation(req)}
+                          className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+                          title={`${req.donorName} - PDF / প্রিন্ট`}
+                        >
+                          <FileText className="h-3 w-3 text-emerald-700" />
+                          <span>PDF</span>
+                        </button>
+                        {onDownloadDonationImage && (
+                          <button
+                            type="button"
+                            onClick={() => onDownloadDonationImage(req)}
+                            disabled={downloadingImageKey === `donation-${req.id}`}
+                            className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                            title={`${req.donorName} - ইমেজ ডাউনলোড`}
+                          >
+                            <ImageIcon className="h-3 w-3 text-blue-700" />
+                            <span>
+                              {downloadingImageKey === `donation-${req.id}` ? '...' : 'ইমেজ'}
+                            </span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                   <p className="text-xs text-slate-600 font-mono-num">
@@ -209,15 +238,29 @@ export const AdminRequestsTab: React.FC<AdminRequestsTabProps> = ({
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   {onPrintDonation && (
-                    <button
-                      type="button"
-                      onClick={() => onPrintDonation(req)}
-                      className="no-print inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
-                      title="অনুদানের PDF / প্রিন্ট"
-                    >
-                      <Printer className="h-3.5 w-3.5 text-emerald-700" />
-                      PDF / প্রিন্ট
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onPrintDonation(req)}
+                        className="no-print inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                        title="অনুদানের PDF / প্রিন্ট"
+                      >
+                        <Printer className="h-3.5 w-3.5 text-emerald-700" />
+                        PDF / প্রিন্ট
+                      </button>
+                      {onDownloadDonationImage && (
+                        <button
+                          type="button"
+                          onClick={() => onDownloadDonationImage(req)}
+                          disabled={downloadingImageKey === `donation-${req.id}`}
+                          className="no-print inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-100 disabled:opacity-60"
+                          title="অনুদানের ইমেজ ডাউনলোড"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5 text-blue-700" />
+                          {downloadingImageKey === `donation-${req.id}` ? '...' : 'ইমেজ'}
+                        </button>
+                      )}
+                    </>
                   )}
                   {req.status === 'pending' && (
                     <>
